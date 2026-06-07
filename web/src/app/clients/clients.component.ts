@@ -1,0 +1,79 @@
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { ClientService, Client } from '../client.service';
+
+@Component({
+  selector: 'app-clients',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './clients.component.html',
+  styleUrl: './clients.component.css'
+})
+export class ClientsComponent implements OnInit {
+  clients: Client[] = [];
+  currentClient: Client = { name: '', address: '', taxId: '' };
+  editingClient = false;
+
+  constructor(private clientService: ClientService) { }
+
+  ngOnInit(): void {
+    this.loadClients();
+  }
+
+  loadClients(): void {
+    this.clientService.getClients().subscribe({
+      next: (data) => {
+        this.clients = data;
+      },
+      error: (error) => {
+        console.error('Error fetching clients', error);
+      }
+    });
+  }
+
+  saveClient(): void {
+    if (this.editingClient) {
+      this.clientService.updateClient(this.currentClient.id!, this.currentClient).subscribe({
+        next: () => {
+          this.loadClients();
+          this.cancelEdit();
+        },
+        error: (error) => {
+          console.error('Error updating client', error);
+        }
+      });
+    } else {
+      this.clientService.addClient(this.currentClient).subscribe({
+        next: () => {
+          this.loadClients();
+          this.currentClient = { name: '', address: '', taxId: '' };
+        },
+        error: (error) => {
+          console.error('Error adding client', error);
+        }
+      });
+    }
+  }
+
+  editClient(client: Client): void {
+    this.currentClient = { ...client };
+    this.editingClient = true;
+  }
+
+  cancelEdit(): void {
+    this.currentClient = { name: '', address: '', taxId: '' };
+    this.editingClient = false;
+  }
+
+  deleteClient(id: number): void {
+    this.clientService.deleteClient(id).subscribe({
+      next: () => {
+        this.loadClients();
+      },
+      error: (error) => {
+        console.error('Error deleting client', error);
+      }
+    });
+  }
+}

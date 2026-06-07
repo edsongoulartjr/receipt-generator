@@ -1,0 +1,14 @@
+<nav class="navbar">
+    <a routerLink="/" class="navbar-brand">Receipt Generator</a>
+    <div class="navbar-links">
+        <ng-container *ngIf="authService.isAuthenticated$ | async">
+            <a routerLink="/clients" class="nav-link">Clients</a>
+            <a routerLink="/receipts" class="nav-link">Receipts</a>
+            <button (click)="logout()" class="nav-link logout-button">Logout</button>
+        </ng-container>
+        <ng-container *ngIf="!(authService.isAuthenticated$ | async)">
+            <a routerLink="/login" class="nav-link">Login</a>
+            <a routerLink="/register" class="nav-link">Register</a>
+        </ng-container>
+    </div>
+</nav>
