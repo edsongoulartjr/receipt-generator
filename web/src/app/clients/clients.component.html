@@ -23,6 +23,7 @@
 
     <div class="clients-list">
         <h3>Clientes Cadastrados</h3>
+        <p *ngIf="clients.length === 0">Nenhum cliente cadastrado ainda.</p>
         <ul>
             <li *ngFor="let client of clients">
                 <div class="client-info">
