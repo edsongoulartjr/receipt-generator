@@ -43,8 +43,8 @@ public sealed class ReceiptService : IReceiptService
             userId,
             request.Description,
             request.Amount,
-            request.StartTime,
-            request.EndTime,
+            NormalizeDateTime(request.StartTime),
+            NormalizeDateTime(request.EndTime),
             request.ServiceDates,
             request.IssuerName,
             request.IssuerPhone,
@@ -68,8 +68,8 @@ public sealed class ReceiptService : IReceiptService
         receipt.Update(
             request.Description,
             request.Amount,
-            request.StartTime,
-            request.EndTime,
+            NormalizeDateTime(request.StartTime),
+            NormalizeDateTime(request.EndTime),
             request.ServiceDates,
             request.IssuerName,
             request.IssuerPhone,
@@ -117,5 +117,20 @@ public sealed class ReceiptService : IReceiptService
             receipt.IssuerEmail,
             receipt.DriverName,
             client);
+    }
+
+    private static DateTime? NormalizeDateTime(DateTime? value)
+    {
+        if (!value.HasValue)
+        {
+            return null;
+        }
+
+        return value.Value.Kind switch
+        {
+            DateTimeKind.Utc => value.Value,
+            DateTimeKind.Local => value.Value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value.Value, DateTimeKind.Utc)
+        };
     }
 }

@@ -157,6 +157,6 @@ export class ReceiptsComponent implements OnInit {
       return value;
     }
 
-    return `1970-01-01T${value}:00`;
+    return `1970-01-01T${value}:00Z`;
   }
 }
