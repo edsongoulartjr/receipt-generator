@@ -20,6 +20,8 @@ public sealed class ApplicationDbContext : DbContext
             entity.HasKey(x => x.Id);
             entity.Property(x => x.Username).HasMaxLength(100).IsRequired();
             entity.Property(x => x.PasswordHash).HasMaxLength(500).IsRequired();
+            entity.Property(x => x.Role).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.IsActive).IsRequired();
             entity.HasIndex(x => x.Username).IsUnique();
         });
 

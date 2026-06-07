@@ -15,13 +15,6 @@ public sealed class AuthController : ControllerBase
         _authService = authService;
     }
 
-    [HttpPost("register")]
-    public async Task<IActionResult> Register(RegisterUserRequest request, CancellationToken cancellationToken)
-    {
-        var created = await _authService.RegisterAsync(request, cancellationToken);
-        return created ? Created("api/auth/register", null) : Conflict("Username already exists.");
-    }
-
     [HttpPost("login")]
     public async Task<ActionResult<AuthResponse>> Login(LoginRequest request, CancellationToken cancellationToken)
     {

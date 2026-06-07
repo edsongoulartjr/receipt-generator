@@ -12,15 +12,25 @@ Projeto .NET 9 para emissao de recibos em PDF, organizado em camadas com orienta
 
 ## Fluxo principal
 
-1. Registrar ou autenticar um usuario.
+1. Autenticar um usuario.
 2. Cadastrar clientes do usuario autenticado.
 3. Emitir recibos vinculados a um cliente.
 4. Baixar o recibo em PDF pelo endpoint `GET /api/receipts/{id}/pdf`.
 
+## Perfis de Acesso
+
+- `SuperAdmin`: gerencia usuarios, clientes, recibos e PDFs.
+- `Operator`: gerencia clientes, recibos e PDFs.
+
+O cadastro publico de usuarios foi removido. Novos usuarios devem ser criados por um `SuperAdmin`.
+
 ## Endpoints
 
-- `POST /api/auth/register`
 - `POST /api/auth/login`
+- `GET /api/users`
+- `POST /api/users`
+- `PUT /api/users/{id}/activate`
+- `PUT /api/users/{id}/deactivate`
 - `GET /api/clients`
 - `POST /api/clients`
 - `GET /api/clients/{id}`

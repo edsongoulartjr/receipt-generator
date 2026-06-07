@@ -1,0 +1,40 @@
+.users-container {
+    width: min(1000px, calc(100% - 32px));
+    margin: 28px auto 0;
+}
+
+.users-container h2 {
+    margin: 0 0 18px;
+    font-size: 1.8rem;
+}
+
+.user-form,
+.users-list {
+    background: #fff;
+    border: 1px solid #e4e0d4;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 12px 30px rgba(21, 21, 21, 0.06);
+}
+
+.user-form {
+    margin-bottom: 22px;
+}
+
+.user-form h3,
+.users-list h3 {
+    margin: 0 0 16px;
+    font-size: 1.1rem;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 220px;
+    gap: 14px;
+}
+
+@media (max-width: 760px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+}
