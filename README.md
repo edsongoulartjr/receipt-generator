@@ -57,6 +57,7 @@ dotnet run --project src/ReceiptGenerator.Api/ReceiptGenerator.Api.csproj
 ```
 
 Durante desenvolvimento, a especificacao OpenAPI fica disponivel em `/openapi/v1.json`.
+O Swagger UI fica disponivel em `/swagger`.
 
 Para executar o frontend:
 
