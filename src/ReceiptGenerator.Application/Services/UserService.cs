@@ -23,16 +23,21 @@ public sealed class UserService : IUserService
         return users.Select(Map).ToList();
     }
 
-    public async Task<UserResponse?> CreateAsync(CreateUserRequest request, CancellationToken cancellationToken = default)
+    public async Task<CreateUserResult> CreateAsync(CreateUserRequest request, CancellationToken cancellationToken = default)
     {
-        if (!UserRole.IsValid(request.Role) || await _users.GetByUsernameAsync(request.Username, cancellationToken) is not null)
+        if (!UserRole.IsValid(request.Role))
         {
-            return null;
+            return new CreateUserResult(CreateUserStatus.InvalidRole);
+        }
+
+        if (await _users.GetByUsernameAsync(request.Username, cancellationToken) is not null)
+        {
+            return new CreateUserResult(CreateUserStatus.UsernameAlreadyExists);
         }
 
         var user = new User(request.Username, _passwordHasher.Hash(request.Password), request.Role);
         await _users.AddAsync(user, cancellationToken);
-        return Map(user);
+        return new CreateUserResult(CreateUserStatus.Created, Map(user));
     }
 
     public async Task<bool> ActivateAsync(int id, CancellationToken cancellationToken = default)

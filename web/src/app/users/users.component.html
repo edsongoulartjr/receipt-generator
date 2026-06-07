@@ -3,15 +3,18 @@
 
     <div class="user-form">
         <h3>Novo Usuário</h3>
-        <form (ngSubmit)="createUser()">
+        <form #userForm="ngForm" (ngSubmit)="createUser()">
             <div class="form-grid">
                 <div class="form-group">
                     <label for="username">Usuário</label>
-                    <input type="text" id="username" [(ngModel)]="currentUser.username" name="username" required>
+                    <input type="text" id="username" [(ngModel)]="currentUser.username" name="username"
+                        maxlength="100" required>
                 </div>
                 <div class="form-group">
                     <label for="password">Senha inicial</label>
-                    <input type="password" id="password" [(ngModel)]="currentUser.password" name="password" required>
+                    <input type="password" id="password" [(ngModel)]="currentUser.password" name="password"
+                        minlength="6" maxlength="100" required>
+                    <small>A senha deve ter pelo menos 6 caracteres.</small>
                 </div>
                 <div class="form-group">
                     <label for="role">Perfil</label>
@@ -22,7 +25,9 @@
                     </select>
                 </div>
             </div>
-            <button type="submit">Criar usuário</button>
+            <p class="form-message success" *ngIf="successMessage">{{ successMessage }}</p>
+            <p class="form-message error" *ngIf="errorMessage">{{ errorMessage }}</p>
+            <button type="submit" [disabled]="userForm.invalid">Criar usuário</button>
         </form>
     </div>
 

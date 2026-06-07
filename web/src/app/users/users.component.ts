@@ -14,6 +14,8 @@ export class UsersComponent implements OnInit {
   users: User[] = [];
   currentUser: CreateUserRequest = this.emptyUser();
   roles: CreateUserRequest['role'][] = ['Operator', 'SuperAdmin'];
+  errorMessage = '';
+  successMessage = '';
 
   constructor(private userService: UserService) { }
 
@@ -33,14 +35,18 @@ export class UsersComponent implements OnInit {
   }
 
   createUser(): void {
+    this.errorMessage = '';
+    this.successMessage = '';
+
     this.userService.createUser(this.currentUser).subscribe({
       next: () => {
         this.currentUser = this.emptyUser();
+        this.successMessage = 'Usuário criado com sucesso.';
         this.loadUsers();
       },
       error: (error) => {
         console.error('Erro ao criar usuário', error);
-        alert('Não foi possível criar o usuário. Verifique se o usuário já existe.');
+        this.errorMessage = this.getCreateErrorMessage(error);
       }
     });
   }
@@ -65,5 +71,25 @@ export class UsersComponent implements OnInit {
       password: '',
       role: 'Operator'
     };
+  }
+
+  private getCreateErrorMessage(error: any): string {
+    if (error.status === 401 || error.status === 403) {
+      return 'Sua sessão não possui permissão de SuperAdmin. Saia e entre novamente no sistema.';
+    }
+
+    if (error.status === 409) {
+      return error.error?.message ?? 'Este nome de usuário já está cadastrado.';
+    }
+
+    const validationErrors = error.error?.errors;
+    if (validationErrors) {
+      const messages = Object.values(validationErrors).flat() as string[];
+      if (messages.length > 0) {
+        return messages[0];
+      }
+    }
+
+    return error.error?.message ?? 'Não foi possível criar o usuário. Revise os dados informados.';
   }
 }

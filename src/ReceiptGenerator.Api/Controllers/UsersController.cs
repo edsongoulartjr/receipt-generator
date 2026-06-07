@@ -28,10 +28,24 @@ public sealed class UsersController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<UserResponse>> Create(CreateUserRequest request, CancellationToken cancellationToken)
     {
-        var user = await _userService.CreateAsync(request, cancellationToken);
-        return user is null
-            ? BadRequest("Invalid role or username already exists.")
-            : CreatedAtAction(nameof(Get), new { id = user.Id }, user);
+        var result = await _userService.CreateAsync(request, cancellationToken);
+
+        return result.Status switch
+        {
+            CreateUserStatus.Created => CreatedAtAction(
+                nameof(Get),
+                new { id = result.User!.Id },
+                result.User),
+            CreateUserStatus.UsernameAlreadyExists => Conflict(new
+            {
+                message = "Este nome de usuário já está cadastrado."
+            }),
+            CreateUserStatus.InvalidRole => BadRequest(new
+            {
+                message = "O perfil informado é inválido."
+            }),
+            _ => StatusCode(StatusCodes.Status500InternalServerError)
+        };
     }
 
     [HttpPut("{id:int}/activate")]

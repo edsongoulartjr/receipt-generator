@@ -13,3 +13,14 @@ public sealed record UserResponse(
     string Username,
     string Role,
     bool IsActive);
+
+public enum CreateUserStatus
+{
+    Created,
+    UsernameAlreadyExists,
+    InvalidRole
+}
+
+public sealed record CreateUserResult(
+    CreateUserStatus Status,
+    UserResponse? User = null);
