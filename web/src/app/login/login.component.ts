@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../auth.service';
 import { Router } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
   selector: 'app-login',
@@ -13,19 +14,41 @@ import { Router } from '@angular/router';
 export class LoginComponent {
   username = '';
   password = '';
+  isSubmitting = false;
+  errorMessage = '';
 
   constructor(private authService: AuthService, private router: Router) { }
 
   onSubmit(): void {
+    if (this.isSubmitting) {
+      return;
+    }
+
+    this.isSubmitting = true;
+    this.errorMessage = '';
+
     this.authService.login({ username: this.username, password: this.password }).subscribe({
-      next: (response) => {
-        console.log('Login realizado', response);
+      next: () => {
+        this.isSubmitting = false;
         this.router.navigate(['/clients']);
       },
-      error: (error) => {
+      error: (error: HttpErrorResponse) => {
+        this.isSubmitting = false;
         console.error('Falha no login', error);
-        alert(`Falha no login: ${error.message || error.statusText || 'Erro desconhecido'}`);
+        this.errorMessage = this.getLoginErrorMessage(error);
       }
     });
+  }
+
+  private getLoginErrorMessage(error: HttpErrorResponse): string {
+    if (error.status === 0) {
+      return 'A API ainda está iniciando. Aguarde alguns segundos e tente novamente.';
+    }
+
+    if (error.status === 401) {
+      return 'Usuário ou senha inválidos.';
+    }
+
+    return error.error?.message || 'Não foi possível entrar no sistema. Tente novamente.';
   }
 }

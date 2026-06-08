@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, BehaviorSubject } from 'rxjs';
-import { tap } from 'rxjs/operators';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { Observable, BehaviorSubject, catchError, delay, of, switchMap, tap, throwError } from 'rxjs';
 import { Router } from '@angular/router';
 import { API_BASE_URL } from './api.config';
 
@@ -20,13 +19,16 @@ export class AuthService {
   constructor(private http: HttpClient, private router: Router) { }
 
   login(credentials: { username: string; password: string }): Observable<any> {
-    return this.http.post(`${this.apiUrl}/login`, credentials).pipe(
-      tap((response: any) => {
-        if (response && response.token) {
-          this.setToken(response.token);
-          this.isAuthenticatedSubject.next(true);
-          this.roleSubject.next(this.getRoleFromToken());
+    return this.sendLogin(credentials).pipe(
+      catchError((error: HttpErrorResponse) => {
+        if (error.status !== 0) {
+          return throwError(() => error);
         }
+
+        return this.wakeApi().pipe(
+          delay(1000),
+          switchMap(() => this.sendLogin(credentials))
+        );
       })
     );
   }
@@ -60,6 +62,25 @@ export class AuthService {
 
   isSuperAdmin(): boolean {
     return this.getRoleFromToken() === 'SuperAdmin';
+  }
+
+  private sendLogin(credentials: { username: string; password: string }): Observable<any> {
+    return this.http.post(`${this.apiUrl}/login`, credentials).pipe(
+      tap((response: any) => {
+        if (response?.token) {
+          this.setToken(response.token);
+          this.isAuthenticatedSubject.next(true);
+          this.roleSubject.next(this.getRoleFromToken());
+        }
+      })
+    );
+  }
+
+  private wakeApi(): Observable<unknown> {
+    const healthUrl = API_BASE_URL.replace(/\/api\/?$/, '/health');
+    return this.http.get(healthUrl, { responseType: 'text' }).pipe(
+      catchError(() => of(null))
+    );
   }
 
   private getRoleFromToken(): string | null {

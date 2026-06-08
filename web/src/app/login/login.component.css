@@ -45,6 +45,18 @@ button {
     margin-top: 6px;
 }
 
+button:disabled {
+    cursor: wait;
+    opacity: 0.7;
+}
+
+.form-error {
+    margin: 0 0 12px;
+    color: #b42318;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
 .auth-link {
     margin-top: 18px;
     text-align: center;
