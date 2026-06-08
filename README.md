@@ -134,7 +134,9 @@ O arquivo `render.yaml` define a API como um Web Service Docker. No Render:
 3. Informe as variaveis solicitadas:
    - `ConnectionStrings__DefaultConnection`: connection string do Session Pooler do Supabase, com SSL.
    - `Cors__AllowedOrigins`: URL publica exata do frontend, sem barra no final. Exemplo: `https://receipt-generator.pages.dev`.
-4. Aguarde o deploy e valide `https://SUA-API.onrender.com/health`.
+4. Aguarde o deploy e valide:
+   - `https://SUA-API.onrender.com/health`: processo da API.
+   - `https://SUA-API.onrender.com/health/ready`: conexao com o banco.
 
 O segredo JWT e gerado pelo Render. O bootstrap do administrador permanece desabilitado em producao.
 
