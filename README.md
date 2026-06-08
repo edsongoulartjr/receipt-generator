@@ -138,6 +138,8 @@ O arquivo `render.yaml` define a API como um Web Service Docker. No Render:
 
 O segredo JWT e gerado pelo Render. O bootstrap do administrador permanece desabilitado em producao.
 
+O Blueprint usa o plano gratuito para homologacao. Nesse plano, a API pode ser suspensa apos alguns minutos sem trafego, fazendo o primeiro acesso seguinte demorar mais. Para uso diario da cooperativa, altere `plan: free` para `plan: starter`.
+
 ### Frontend no Cloudflare Pages
 
 Depois que a API estiver publicada:

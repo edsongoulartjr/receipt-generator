@@ -2,7 +2,7 @@ services:
   - type: web
     runtime: docker
     name: receipt-generator-api
-    plan: starter
+    plan: free
     region: virginia
     dockerfilePath: ./src/ReceiptGenerator.Api/Dockerfile
     dockerContext: .
