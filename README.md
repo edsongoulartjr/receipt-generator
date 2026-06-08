@@ -152,7 +152,7 @@ Depois que a API estiver publicada:
 
 ```text
 API_BASE_URL=https://SUA-API.onrender.com/api
-NODE_VERSION=20
+NODE_VERSION=22
 ```
 
 O arquivo `web/wrangler.jsonc` publica o build Angular como Static Assets e configura fallback de SPA. Depois do primeiro deploy, atualize `Cors__AllowedOrigins` no Render com a URL HTTPS `workers.dev` fornecida pela Cloudflare. Mais de uma origem pode ser informada separando os valores por virgula.
