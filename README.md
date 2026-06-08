@@ -140,18 +140,19 @@ O segredo JWT e gerado pelo Render. O bootstrap do administrador permanece desab
 
 O Blueprint usa o plano gratuito para homologacao. Nesse plano, a API pode ser suspensa apos alguns minutos sem trafego, fazendo o primeiro acesso seguinte demorar mais. Para uso diario da cooperativa, altere `plan: free` para `plan: starter`.
 
-### Frontend no Cloudflare Pages
+### Frontend no Cloudflare Workers
 
 Depois que a API estiver publicada:
 
-1. Crie um projeto Pages conectado ao mesmo repositorio.
+1. Crie um Worker conectado ao mesmo repositorio.
 2. Defina o diretorio raiz como `web`.
 3. Use o comando de build `npm run build`.
-4. Use o diretorio de saida `dist/receipt-generator.frontend/browser`.
-5. Adicione a variavel de build:
+4. Use o comando de deploy `npm run deploy`.
+5. Adicione as variaveis de build:
 
 ```text
 API_BASE_URL=https://SUA-API.onrender.com/api
+NODE_VERSION=20
 ```
 
-Escolha o nome do projeto antes de configurar o CORS da API, pois ele define o dominio `pages.dev`. Para dominio proprio, atualize `Cors__AllowedOrigins` no Render com a URL HTTPS definitiva. Mais de uma origem pode ser informada separando os valores por virgula.
+O arquivo `web/wrangler.jsonc` publica o build Angular como Static Assets e configura fallback de SPA. Depois do primeiro deploy, atualize `Cors__AllowedOrigins` no Render com a URL HTTPS `workers.dev` fornecida pela Cloudflare. Mais de uma origem pode ser informada separando os valores por virgula.
