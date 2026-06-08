@@ -55,13 +55,62 @@
     color: #9b1c12;
 }
 
+.user-cards {
+    display: none;
+}
+
 button:disabled {
     cursor: not-allowed;
     opacity: 0.55;
 }
 
 @media (max-width: 760px) {
+    .users-container {
+        width: min(100% - 20px, 1000px);
+    }
+
     .form-grid {
         grid-template-columns: 1fr;
+    }
+
+    .users-list .table {
+        display: none;
+    }
+
+    .user-cards {
+        display: grid;
+        gap: 12px;
+    }
+
+    .user-card {
+        background: #fffdf8;
+        border: 1px solid #eee7d3;
+        border-radius: 8px;
+        padding: 14px;
+    }
+
+    .user-card > div {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+    }
+
+    .user-card span {
+        color: #12663d;
+        font-weight: 800;
+    }
+
+    .user-card span.inactive {
+        color: #9b1c12;
+    }
+
+    .user-card p {
+        margin: 10px 0 12px;
+        color: #6f6f6f;
+    }
+
+    .user-card button {
+        width: 100%;
     }
 }

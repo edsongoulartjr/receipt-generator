@@ -47,9 +47,18 @@
 
 .client-info strong {
     color: #151515;
+    display: block;
+}
+
+.client-info span {
+    display: block;
+    margin-top: 3px;
+    color: #3b3527;
 }
 
 .client-info small {
+    display: block;
+    margin-top: 3px;
     color: #6f6f6f;
 }
 
@@ -68,8 +77,20 @@
 }
 
 @media (max-width: 680px) {
+    .clients-container {
+        width: min(100% - 20px, 1000px);
+    }
+
     .clients-list li {
         align-items: flex-start;
         flex-direction: column;
+    }
+
+    .client-actions {
+        width: 100%;
+    }
+
+    .client-actions button {
+        flex: 1;
     }
 }

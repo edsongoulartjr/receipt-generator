@@ -34,6 +34,19 @@
     <div class="users-list">
         <h3>Usuários Cadastrados</h3>
         <p *ngIf="users.length === 0">Nenhum usuário cadastrado.</p>
+
+        <div class="user-cards" *ngIf="users.length > 0">
+            <article class="user-card" *ngFor="let user of users">
+                <div>
+                    <strong>{{ user.username }}</strong>
+                    <span [class.inactive]="!user.isActive">{{ user.isActive ? 'Ativo' : 'Inativo' }}</span>
+                </div>
+                <p>{{ user.role === 'SuperAdmin' ? 'Super administrador' : 'Operador' }}</p>
+                <button class="btn btn-success" *ngIf="!user.isActive" (click)="activate(user)">Ativar</button>
+                <button class="btn btn-danger" *ngIf="user.isActive" (click)="deactivate(user)">Desativar</button>
+            </article>
+        </div>
+
         <table class="table" *ngIf="users.length > 0">
             <thead>
                 <tr>

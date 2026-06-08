@@ -118,7 +118,7 @@ select:focus {
 button {
   border: 0;
   border-radius: 6px;
-  min-height: 38px;
+  min-height: 42px;
   padding: 9px 14px;
   font-weight: 700;
   cursor: pointer;
@@ -156,7 +156,7 @@ button[type="submit"]:hover {
 }
 
 .btn-sm {
-  min-height: 34px;
+  min-height: 38px;
   padding: 7px 10px;
   font-size: 0.9rem;
 }
@@ -197,5 +197,15 @@ button[type="submit"]:hover {
 
   .row {
     grid-template-columns: 1fr;
+  }
+
+  .card-header,
+  .card-body {
+    padding: 16px;
+  }
+
+  .btn,
+  button {
+    min-height: 46px;
   }
 }

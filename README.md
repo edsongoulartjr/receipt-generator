@@ -24,6 +24,24 @@ Projeto .NET 9 para emissao de recibos em PDF, organizado em camadas com orienta
 
 O cadastro publico de usuarios foi removido. Novos usuarios devem ser criados por um `SuperAdmin`.
 
+## Primeiro SuperAdmin
+
+Em uma base limpa, como uma nova base no Supabase, habilite temporariamente o bootstrap do administrador inicial via User Secrets:
+
+```bash
+dotnet user-secrets set "BootstrapAdmin:Enabled" "true" --project src/ReceiptGenerator.Api/ReceiptGenerator.Api.csproj
+dotnet user-secrets set "BootstrapAdmin:Username" "admin" --project src/ReceiptGenerator.Api/ReceiptGenerator.Api.csproj
+dotnet user-secrets set "BootstrapAdmin:Password" "SENHA_FORTE_AQUI" --project src/ReceiptGenerator.Api/ReceiptGenerator.Api.csproj
+```
+
+Ao iniciar a API, se ainda nao existir nenhum `SuperAdmin`, o usuario inicial sera criado. Depois do primeiro login, desative o bootstrap:
+
+```bash
+dotnet user-secrets set "BootstrapAdmin:Enabled" "false" --project src/ReceiptGenerator.Api/ReceiptGenerator.Api.csproj
+```
+
+Mantenha esse recurso desligado em producao apos criar o primeiro administrador.
+
 ## Endpoints
 
 - `POST /api/auth/login`
@@ -45,7 +63,7 @@ O cadastro publico de usuarios foi removido. Novos usuarios devem ser criados po
 
 ## Configuracao
 
-Atualize `src/ReceiptGenerator.Api/appsettings.json` com a conexao PostgreSQL e substitua `JwtSettings:Secret` por um segredo seguro.
+Por padrao, o ambiente `Development` aponta para PostgreSQL local.
 
 ```json
 {
@@ -56,6 +74,18 @@ Atualize `src/ReceiptGenerator.Api/appsettings.json` com a conexao PostgreSQL e 
     "Secret": "change-this-development-secret-with-at-least-32-characters"
   }
 }
+```
+
+Para apontar para Supabase sem gravar senha no Git, use User Secrets:
+
+```bash
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=aws-1-sa-east-1.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.fodubkyzdyozxflnaijv;Password=SUA_SENHA;SSL Mode=Require;Trust Server Certificate=true" --project src/ReceiptGenerator.Api/ReceiptGenerator.Api.csproj
+```
+
+Para voltar ao banco local:
+
+```bash
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=receipt_generator;Username=postgres;Password=SUA_SENHA_LOCAL" --project src/ReceiptGenerator.Api/ReceiptGenerator.Api.csproj
 ```
 
 ## Executar
@@ -92,3 +122,34 @@ docker compose up --build
 ```
 
 Antes de publicar em producao, troque `JwtSettings__Secret` e as credenciais do PostgreSQL em `docker-compose.yml`.
+
+## Publicacao
+
+### Backend no Render
+
+O arquivo `render.yaml` define a API como um Web Service Docker. No Render:
+
+1. Conecte o repositorio GitHub `edsongoulartjr/receipt-generator`.
+2. Crie um Blueprint usando o arquivo `render.yaml` da raiz.
+3. Informe as variaveis solicitadas:
+   - `ConnectionStrings__DefaultConnection`: connection string do Session Pooler do Supabase, com SSL.
+   - `Cors__AllowedOrigins`: URL publica exata do frontend, sem barra no final. Exemplo: `https://receipt-generator.pages.dev`.
+4. Aguarde o deploy e valide `https://SUA-API.onrender.com/health`.
+
+O segredo JWT e gerado pelo Render. O bootstrap do administrador permanece desabilitado em producao.
+
+### Frontend no Cloudflare Pages
+
+Depois que a API estiver publicada:
+
+1. Crie um projeto Pages conectado ao mesmo repositorio.
+2. Defina o diretorio raiz como `web`.
+3. Use o comando de build `npm run build`.
+4. Use o diretorio de saida `dist/receipt-generator.frontend/browser`.
+5. Adicione a variavel de build:
+
+```text
+API_BASE_URL=https://SUA-API.onrender.com/api
+```
+
+Escolha o nome do projeto antes de configurar o CORS da API, pois ele define o dominio `pages.dev`. Para dominio proprio, atualize `Cors__AllowedOrigins` no Render com a URL HTTPS definitiva. Mais de uma origem pode ser informada separando os valores por virgula.

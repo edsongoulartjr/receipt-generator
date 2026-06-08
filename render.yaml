@@ -1,0 +1,23 @@
+services:
+  - type: web
+    runtime: docker
+    name: receipt-generator-api
+    plan: starter
+    region: virginia
+    dockerfilePath: ./src/ReceiptGenerator.Api/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeployTrigger: commit
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_HTTP_PORTS
+        value: 10000
+      - key: ConnectionStrings__DefaultConnection
+        sync: false
+      - key: JwtSettings__Secret
+        generateValue: true
+      - key: Cors__AllowedOrigins
+        sync: false
+      - key: BootstrapAdmin__Enabled
+        value: "false"
