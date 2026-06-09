@@ -19,6 +19,10 @@
     <ProjectReference Include="..\ReceiptGenerator.Domain\ReceiptGenerator.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Pdf\Assets\coopertaxi-logo.png" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
