@@ -1,4 +1,4 @@
-<nav class="navbar">
+<nav class="navbar" *ngIf="authService.isAuthenticated$ | async">
     <a routerLink="/" class="navbar-brand" aria-label="Coopertaxi Jundiaí">
         <span class="brand-mark">CT</span>
         <span class="brand-copy">
@@ -7,14 +7,9 @@
         </span>
     </a>
     <div class="navbar-links">
-        <ng-container *ngIf="authService.isAuthenticated$ | async">
-            <a routerLink="/clients" routerLinkActive="active" class="nav-link">Clientes</a>
-            <a routerLink="/receipts" routerLinkActive="active" class="nav-link">Recibos</a>
-            <a routerLink="/users" routerLinkActive="active" class="nav-link" *ngIf="authService.isSuperAdmin()">Usuários</a>
-            <button (click)="logout()" class="nav-link logout-button">Sair</button>
-        </ng-container>
-        <ng-container *ngIf="!(authService.isAuthenticated$ | async)">
-            <a routerLink="/login" routerLinkActive="active" class="nav-link">Entrar</a>
-        </ng-container>
+        <a routerLink="/clients" routerLinkActive="active" class="nav-link">Clientes</a>
+        <a routerLink="/receipts" routerLinkActive="active" class="nav-link">Recibos</a>
+        <a routerLink="/users" routerLinkActive="active" class="nav-link" *ngIf="authService.isSuperAdmin()">Usuários</a>
+        <button (click)="logout()" class="nav-link logout-button">Sair</button>
     </div>
 </nav>

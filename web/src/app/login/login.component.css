@@ -1,5 +1,5 @@
 .auth-page {
-    min-height: calc(100vh - 72px);
+    min-height: 100vh;
     display: grid;
     align-items: center;
     justify-items: center;
@@ -18,6 +18,15 @@
 
 .auth-heading {
     margin-bottom: 22px;
+    text-align: center;
+}
+
+.cooperative-logo {
+    display: block;
+    width: 104px;
+    height: 104px;
+    margin: 0 auto 14px;
+    object-fit: contain;
 }
 
 .eyebrow {
@@ -66,4 +75,19 @@ button:disabled {
     color: #806600;
     font-weight: 700;
     text-decoration: none;
+}
+
+@media (max-width: 480px) {
+    .auth-page {
+        padding: 20px 12px;
+    }
+
+    .auth-panel {
+        padding: 22px 18px;
+    }
+
+    .cooperative-logo {
+        width: 88px;
+        height: 88px;
+    }
 }
