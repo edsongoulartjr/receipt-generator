@@ -14,9 +14,6 @@ export interface Receipt {
   startTime?: string;
   endTime?: string;
   serviceDates?: string;
-  issuerName?: string;
-  issuerPhone?: string;
-  issuerEmail?: string;
   driverName?: string;
 }
 

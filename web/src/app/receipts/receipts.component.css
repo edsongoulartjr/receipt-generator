@@ -35,6 +35,19 @@ h2 {
     flex-wrap: wrap;
 }
 
+.btn:disabled {
+    cursor: wait;
+    opacity: 0.7;
+}
+
+.share-feedback {
+    margin: 0 0 14px;
+    padding: 10px 12px;
+    border-left: 4px solid #167c4a;
+    background: #edf8f2;
+    color: #145c3b;
+}
+
 .table td:last-child {
     white-space: nowrap;
 }
@@ -109,8 +122,13 @@ h2 {
 
     .card-actions {
         display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
+        grid-template-columns: minmax(0, 1.35fr) 1fr 1fr;
         gap: 8px;
+    }
+
+    .card-actions .btn {
+        min-width: 0;
+        padding-inline: 8px;
     }
 
     .form-actions {

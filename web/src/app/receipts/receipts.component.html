@@ -20,8 +20,9 @@
                         </div>
                         <div class="form-group">
                             <label for="amount">Valor</label>
-                            <input type="number" min="0.01" step="0.01" id="amount"
-                                [(ngModel)]="currentReceipt.amount" name="amount" class="form-control" required>
+                            <input type="text" inputmode="numeric" id="amount" [value]="amountDisplay"
+                                (input)="onAmountInput($event)" name="amount" class="form-control"
+                                placeholder="R$ 0,00" autocomplete="off" required>
                         </div>
                     </div>
                     <div class="form-group">
@@ -53,28 +54,11 @@
                 </div>
 
                 <div class="form-section">
-                    <h4>Emitente e responsável</h4>
-                    <div class="row">
-                        <div class="form-group">
-                            <label for="issuerName">Emitente</label>
-                            <input type="text" id="issuerName" [(ngModel)]="currentReceipt.issuerName"
-                                name="issuerName" class="form-control">
-                        </div>
-                        <div class="form-group">
-                            <label for="driverName">Nome do Responsável</label>
-                            <input type="text" id="driverName" [(ngModel)]="currentReceipt.driverName"
-                                name="driverName" class="form-control">
-                        </div>
-                        <div class="form-group">
-                            <label for="issuerPhone">Telefone do Emitente</label>
-                            <input type="text" id="issuerPhone" [(ngModel)]="currentReceipt.issuerPhone"
-                                name="issuerPhone" class="form-control">
-                        </div>
-                        <div class="form-group">
-                            <label for="issuerEmail">Email do Emitente</label>
-                            <input type="email" id="issuerEmail" [(ngModel)]="currentReceipt.issuerEmail"
-                                name="issuerEmail" class="form-control">
-                        </div>
+                    <h4>Motorista</h4>
+                    <div class="form-group">
+                        <label for="driverName">Nome do Motorista</label>
+                        <input type="text" id="driverName" [(ngModel)]="currentReceipt.driverName"
+                            name="driverName" class="form-control" autocomplete="name" maxlength="200">
                     </div>
                 </div>
 
@@ -93,6 +77,7 @@
         </div>
         <div class="card-body">
             <p *ngIf="receipts.length === 0">Nenhum recibo emitido ainda.</p>
+            <p class="share-feedback" role="status" *ngIf="shareFeedback">{{ shareFeedback }}</p>
 
             <div class="receipt-cards" *ngIf="receipts.length > 0">
                 <article class="receipt-card" *ngFor="let receipt of receipts">
@@ -117,7 +102,10 @@
                         </div>
                     </dl>
                     <div class="card-actions">
-                        <button class="btn btn-success" (click)="generatePdf(receipt.id!)">PDF</button>
+                        <button class="btn btn-success" (click)="sharePdf(receipt)"
+                            [disabled]="sharingReceiptId !== null">
+                            {{ sharingReceiptId === receipt.id ? 'Preparando...' : 'Compartilhar' }}
+                        </button>
                         <button class="btn btn-info" (click)="editReceipt(receipt)">Editar</button>
                         <button class="btn btn-danger" (click)="deleteReceipt(receipt.id!)">Excluir</button>
                     </div>
@@ -135,7 +123,7 @@
                             <th>Data</th>
                             <th>Início</th>
                             <th>Fim</th>
-                            <th>Responsável</th>
+                            <th>Motorista</th>
                             <th>Ações</th>
                         </tr>
                     </thead>
@@ -153,7 +141,10 @@
                                 <button class="btn btn-info btn-sm me-2" (click)="editReceipt(receipt)">Editar</button>
                                 <button class="btn btn-danger btn-sm me-2"
                                     (click)="deleteReceipt(receipt.id!)">Excluir</button>
-                                <button class="btn btn-success btn-sm" (click)="generatePdf(receipt.id!)">PDF</button>
+                                <button class="btn btn-success btn-sm" (click)="sharePdf(receipt)"
+                                    [disabled]="sharingReceiptId !== null">
+                                    {{ sharingReceiptId === receipt.id ? 'Preparando...' : 'Compartilhar' }}
+                                </button>
                             </td>
                         </tr>
                     </tbody>
