@@ -1,4 +1,5 @@
 using System.Globalization;
+using QuestPDF.Drawing;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -11,9 +12,30 @@ public sealed class QuestReceiptPdfGenerator : IReceiptPdfGenerator
 {
     private static readonly CultureInfo Brazil = new("pt-BR");
 
-    public QuestReceiptPdfGenerator()
+    static QuestReceiptPdfGenerator()
     {
         QuestPDF.Settings.License = LicenseType.Community;
+        QuestPDF.Settings.UseEnvironmentFonts = false;
+        QuestPDF.Settings.CheckIfAllTextGlyphsAreAvailable = true;
+
+        var bundledFontsPath = Path.Combine(
+            AppContext.BaseDirectory,
+            "runtimes",
+            "any",
+            "native",
+            "LatoFont");
+
+        if (!Directory.Exists(bundledFontsPath))
+        {
+            throw new DirectoryNotFoundException(
+                $"QuestPDF bundled fonts were not found at '{bundledFontsPath}'.");
+        }
+
+        foreach (var fontFile in Directory.EnumerateFiles(bundledFontsPath, "*.ttf"))
+        {
+            using var fontStream = File.OpenRead(fontFile);
+            FontManager.RegisterFont(fontStream);
+        }
     }
 
     public byte[] Generate(Receipt receipt)
