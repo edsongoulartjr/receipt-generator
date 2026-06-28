@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CreateUserRequest, User, UserService } from '../user.service';
+import { AuthService } from '../auth.service';
 
 @Component({
   selector: 'app-users',
@@ -17,11 +18,16 @@ export class UsersComponent implements OnInit {
 
   users: User[] = [];
   currentUser: CreateUserRequest = this.emptyUser();
-  roles: CreateUserRequest['role'][] = ['Operator', 'SuperAdmin'];
   errorMessage = '';
   successMessage = '';
 
-  constructor(private userService: UserService) { }
+  constructor(private userService: UserService, public authService: AuthService) { }
+
+  get roles(): CreateUserRequest['role'][] {
+    return this.authService.isSystemAdmin()
+      ? ['Driver', 'CoopAdmin', 'SystemAdmin']
+      : ['Driver'];
+  }
 
   ngOnInit(): void {
     this.loadUsers();
@@ -81,17 +87,27 @@ export class UsersComponent implements OnInit {
     return role;
   }
 
+  roleLabel(role: string): string {
+    switch (role) {
+      case 'SystemAdmin': return 'Administrador do sistema';
+      case 'CoopAdmin': return 'Administrador da cooperativa';
+      case 'Driver': return 'Motorista';
+      default: return role;
+    }
+  }
+
   private emptyUser(): CreateUserRequest {
     return {
       username: '',
       password: '',
-      role: 'Operator'
+      role: 'Driver',
+      fullName: ''
     };
   }
 
   private getCreateErrorMessage(error: HttpErrorResponse): string {
     if (error.status === 401 || error.status === 403) {
-      return 'Sua sessão não possui permissão de SuperAdmin. Saia e entre novamente no sistema.';
+      return 'Sua sessão não possui permissão para realizar esta ação. Saia e entre novamente no sistema.';
     }
 
     if (error.status === 409) {

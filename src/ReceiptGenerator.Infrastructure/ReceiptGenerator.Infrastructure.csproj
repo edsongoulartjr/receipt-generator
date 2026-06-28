@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Pdf\Assets\coopertaxi-logo.png" />
+    <EmbeddedResource Include="Pdf\Assets\DancingScript-Regular.ttf" />
   </ItemGroup>
 
   <PropertyGroup>

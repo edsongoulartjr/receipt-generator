@@ -12,9 +12,7 @@ public sealed record ReceiptRequest(
     [MaxLength(200)] string? IssuerName,
     [MaxLength(50)] string? IssuerPhone,
     [MaxLength(200)] string? IssuerEmail,
-    [MaxLength(200)] string? DriverName);
-
-public sealed record MonthlyReportResponse(int Year, int Month, int Count, decimal TotalAmount);
+    int? DriverUserId = null);  // Apenas admin: emitir em nome de outro motorista
 
 public sealed record PagedResponse<T>(
     IReadOnlyList<T> Items,

@@ -31,17 +31,49 @@ public sealed class ReceiptRepository : IReceiptRepository
         return (items, total);
     }
 
+    public async Task<(IReadOnlyList<Receipt> Items, int TotalCount)> GetAllPagedAsync(
+        int page, int pageSize, CancellationToken cancellationToken = default)
+    {
+        var query = BaseQuery()
+            .AsNoTracking()
+            .OrderByDescending(x => x.Date);
+
+        var total = await query.CountAsync(cancellationToken).ConfigureAwait(false);
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return (items, total);
+    }
+
     public Task<Receipt?> GetByIdAndUserIdAsync(int id, int userId, CancellationToken cancellationToken = default)
     {
         return BaseQuery().FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, cancellationToken);
     }
 
-    public async Task<IReadOnlyList<MonthlyReport>> GetMonthlySummaryAsync(int userId, CancellationToken cancellationToken = default)
+    public Task<Receipt?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+    {
+        return BaseQuery().FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<MonthlyReport>> GetMonthlySummaryAsync(
+        int? userId, int? year, int? month, CancellationToken cancellationToken = default)
+    {
+        var query = _context.Receipts.AsQueryable();
+        if (userId.HasValue) query = query.Where(x => x.UserId == userId.Value);
+        if (year.HasValue) query = query.Where(x => x.Date.Year == year.Value);
+        if (month.HasValue) query = query.Where(x => x.Date.Month == month.Value);
+        return await QueryMonthlySummary(query, cancellationToken).ConfigureAwait(false);
+    }
+
+    private static async Task<IReadOnlyList<MonthlyReport>> QueryMonthlySummary(
+        IQueryable<Receipt> source, CancellationToken cancellationToken)
     {
         // EF Core não traduz construtores posicionais de record diretamente no Select após GroupBy.
         // Projeta para tipo anônimo no SQL (suportado) e materializa em memória.
-        var rows = await _context.Receipts
-            .Where(x => x.UserId == userId)
+        var rows = await source
             .GroupBy(x => new { x.Date.Year, x.Date.Month })
             .Select(g => new
             {

@@ -5,11 +5,19 @@ import { HttpParams } from '@angular/common/http';
 import { API_BASE_URL } from './api.config';
 import { Client } from './client.service';
 
-export interface MonthlyReport {
+export interface MonthlyReportRow {
   year: number;
   month: number;
   count: number;
   totalAmount: number;
+  averageAmount: number;
+}
+
+export interface ReportSummaryResponse {
+  rows: MonthlyReportRow[];
+  totalCount: number;
+  totalAmount: number;
+  averageAmount: number;
 }
 
 export interface PagedResponse<T> {
@@ -32,6 +40,7 @@ export interface Receipt {
   endTime?: string;
   serviceDates?: string;
   driverName?: string;
+  driverUserId?: number;
 }
 
 @Injectable({
@@ -67,7 +76,11 @@ export class ReceiptService {
     return this.http.get(`${this.apiUrl}/${id}/pdf`, { responseType: 'blob' });
   }
 
-  getMonthlySummary(): Observable<MonthlyReport[]> {
-    return this.http.get<MonthlyReport[]>(`${this.apiUrl}/monthly-summary`);
+  getMonthlySummary(year?: number, month?: number, driverId?: number): Observable<ReportSummaryResponse> {
+    let params = new HttpParams();
+    if (year !== undefined) params = params.set('year', year);
+    if (month !== undefined) params = params.set('month', month);
+    if (driverId !== undefined) params = params.set('driverId', driverId);
+    return this.http.get<ReportSummaryResponse>(`${API_BASE_URL}/reports/monthly-summary`, { params });
   }
 }

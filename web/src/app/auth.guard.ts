@@ -13,7 +13,7 @@ export const authGuard: CanActivateFn = () => {
   return router.createUrlTree(['/login']);
 };
 
-export const superAdminGuard: CanActivateFn = () => {
+export const adminGuard: CanActivateFn = () => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
@@ -21,7 +21,7 @@ export const superAdminGuard: CanActivateFn = () => {
     return router.createUrlTree(['/login']);
   }
 
-  if (authService.isSuperAdmin()) {
+  if (authService.isAdminOrAbove()) {
     return true;
   }
 

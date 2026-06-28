@@ -2,16 +2,20 @@
     margin-top: 28px;
 }
 
-.btn-whatsapp {
+.btn-share {
     background-color: #25d366;
     color: #fff;
     border: none;
 }
 
-.btn-whatsapp:hover,
-.btn-whatsapp:focus {
+.btn-share:hover,
+.btn-share:focus {
     background-color: #1ebe5a;
     color: #fff;
+}
+
+.btn-share:disabled {
+    background-color: #7de0a8;
 }
 
 .pagination-nav {
@@ -71,6 +75,10 @@ h2 {
     border-left: 4px solid #167c4a;
     background: #edf8f2;
     color: #145c3b;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
 }
 
 .table td:last-child {
@@ -140,35 +148,43 @@ h2 {
     opacity: 1;
 }
 
-.new-client-prompt {
-    margin-top: 8px;
-    padding: 10px 12px;
-    background: #fffbec;
-    border-left: 4px solid #e8a317;
-    border-radius: 0 6px 6px 0;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-
-.new-client-prompt span {
-    font-size: 0.88rem;
+.new-client-hint {
+    margin: 6px 0 0;
+    font-size: 0.82rem;
     color: #7a5200;
 }
 
-.prompt-actions {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
+.driver-display {
+    margin: 8px 0 12px;
+    font-size: 0.9rem;
+    color: #555;
 }
 
-.new-client-details {
-    margin-top: 12px;
-    padding: 12px;
-    background: #f7f4ee;
-    border-radius: 6px;
-    border: 1px solid #eee7d3;
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.spinner {
+    display: inline-block;
+    width: 13px;
+    height: 13px;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    will-change: transform;
+    vertical-align: middle;
+    margin-right: 5px;
+    flex-shrink: 0;
+}
+
+.receipts-list {
+    transition: opacity 0.2s ease;
+}
+
+.receipts-list.is-loading {
+    opacity: 0.45;
+    pointer-events: none;
 }
 
 .receipt-cards {
@@ -212,8 +228,9 @@ h2 {
         color: #151515;
     }
 
-    .receipt-card p {
+    .receipt-card .card-client-name {
         margin: 10px 0 4px;
+        font-size: 1rem;
         font-weight: 700;
     }
 
@@ -224,7 +241,7 @@ h2 {
 
     .receipt-card dl {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
         gap: 8px;
         margin: 12px 0;
     }

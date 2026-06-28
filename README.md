@@ -1,32 +1,62 @@
 # ReceiptGenerator
 
-Projeto .NET 9 para emissao de recibos em PDF, organizado em camadas com orientacao a DDD.
+Sistema de emissao de recibos em PDF para a Coopertaxi Jundiaisp, desenvolvido em .NET 9 com frontend Angular 17. Motoristas emitem e compartilham recibos pelo celular em segundos via WhatsApp.
 
 ## Estrutura
 
-- `src/ReceiptGenerator.Domain`: entidades, regras basicas de negocio e contratos de repositorio.
-- `src/ReceiptGenerator.Application`: casos de uso, DTOs e abstracoes para infraestrutura.
-- `src/ReceiptGenerator.Infrastructure`: EF Core, PostgreSQL, repositories, JWT, BCrypt e QuestPDF.
-- `src/ReceiptGenerator.Api`: controllers HTTP, autenticacao, CORS e composicao de dependencias.
-- `web`: frontend Angular para emissao e consulta de recibos.
-
-## Fluxo principal
-
-1. Autenticar um usuario.
-2. Cadastrar clientes do usuario autenticado.
-3. Emitir recibos vinculados a um cliente.
-4. Baixar o recibo em PDF pelo endpoint `GET /api/receipts/{id}/pdf`.
+- `src/ReceiptGenerator.Domain`: entidades, regras de negocio e contratos de repositorio.
+- `src/ReceiptGenerator.Application`: casos de uso, DTOs e abstracoes de infraestrutura.
+- `src/ReceiptGenerator.Infrastructure`: EF Core, PostgreSQL, repositorios, JWT, BCrypt, QuestPDF e geracao de PDF.
+- `src/ReceiptGenerator.Api`: controllers HTTP, autenticacao JWT Bearer, CORS e composicao de dependencias.
+- `web`: frontend Angular 17 (standalone components) para emissao, consulta e compartilhamento de recibos.
 
 ## Perfis de Acesso
 
-- `SuperAdmin`: gerencia usuarios, clientes, recibos e PDFs.
-- `Operator`: gerencia clientes, recibos e PDFs.
+| Perfil | Valor no banco | Descricao |
+|---|---|---|
+| Administrador do sistema | `SystemAdmin` | Gerencia usuarios, clientes, recibos e PDFs de qualquer motorista |
+| Administrador da cooperativa | `CoopAdmin` | Mesmas permissoes de administrador, exceto criar outros administradores do sistema |
+| Motorista | `Driver` | Gerencia apenas seus proprios clientes e recibos |
 
-O cadastro publico de usuarios foi removido. Novos usuarios devem ser criados por um `SuperAdmin`.
+O cadastro publico de usuarios foi removido. Novos usuarios sao criados por um administrador na tela de Usuarios.
 
-## Primeiro SuperAdmin
+## Fluxo principal
 
-Em uma base limpa, como uma nova base no Supabase, habilite temporariamente o bootstrap do administrador inicial via User Secrets:
+**Motorista:**
+1. Faz login com usuario e senha.
+2. Cadastra clientes (passageiros) uma unica vez.
+3. Emite um recibo vinculado a um cliente — o nome do motorista e preenchido automaticamente a partir do perfil autenticado.
+4. Compartilha o PDF gerado diretamente pelo WhatsApp via Web Share API.
+
+**Administrador:**
+1. Faz login.
+2. Seleciona o motorista responsavel ao emitir um recibo em nome de outro.
+3. Acessa recibos e PDFs de qualquer motorista.
+4. Gerencia usuarios (criacao, ativacao, desativacao).
+
+## Regras de negocio importantes
+
+- **DriverName imutavel**: o nome do motorista e gravado como snapshot em `Receipt.DriverName` no momento da criacao, a partir de `User.FullName`. Alteracoes posteriores no cadastro do motorista nao afetam recibos ja emitidos.
+- **Numeracao por motorista**: cada motorista tem uma sequencia propria de numeracao de recibos (`Receipt.Number`), independente dos outros.
+- **Refresh token**: o JWT de acesso expira em poucos minutos; o frontend renova automaticamente usando o refresh token sem interrupcao da sessao.
+
+## PDF gerado
+
+O recibo em PDF inclui:
+
+- Cabecalho com logotipo, dados da cooperativa (nome, CNPJ, telefone, e-mail) e numero do recibo.
+- Banda de valor destacada com o valor por extenso.
+- Declaracao de recebimento com nome e CPF/CNPJ do cliente.
+- Detalhes do servico: descricao, data(s), horario de inicio/fim e endereco do cliente.
+- Data de emissao por extenso.
+- **Assinatura visual**: nome do motorista renderizado na fonte cursiva Dancing Script, acima de uma linha de assinatura, seguido do nome impresso e do rotulo "Motorista".
+- Rodape com timestamp de emissao eletronica.
+
+As fontes (Lato + Dancing Script) sao embutidas no assembly — sem dependencia de fontes do sistema operacional.
+
+## Primeiro SystemAdmin
+
+Em uma base limpa, habilite temporariamente o bootstrap do administrador inicial via User Secrets:
 
 ```bash
 dotnet user-secrets set "BootstrapAdmin:Enabled" "true" --project src/ReceiptGenerator.Api/ReceiptGenerator.Api.csproj
@@ -34,7 +64,7 @@ dotnet user-secrets set "BootstrapAdmin:Username" "admin" --project src/ReceiptG
 dotnet user-secrets set "BootstrapAdmin:Password" "SENHA_FORTE_AQUI" --project src/ReceiptGenerator.Api/ReceiptGenerator.Api.csproj
 ```
 
-Ao iniciar a API, se ainda nao existir nenhum `SuperAdmin`, o usuario inicial sera criado. Depois do primeiro login, desative o bootstrap:
+Ao iniciar a API, se ainda nao existir nenhum `SystemAdmin`, o usuario inicial sera criado. Depois do primeiro login, desative o bootstrap:
 
 ```bash
 dotnet user-secrets set "BootstrapAdmin:Enabled" "false" --project src/ReceiptGenerator.Api/ReceiptGenerator.Api.csproj
@@ -44,22 +74,39 @@ Mantenha esse recurso desligado em producao apos criar o primeiro administrador.
 
 ## Endpoints
 
-- `POST /api/auth/login`
-- `GET /api/users`
-- `POST /api/users`
-- `PUT /api/users/{id}/activate`
-- `PUT /api/users/{id}/deactivate`
-- `GET /api/clients`
-- `POST /api/clients`
-- `GET /api/clients/{id}`
-- `PUT /api/clients/{id}`
-- `DELETE /api/clients/{id}`
-- `GET /api/receipts`
-- `POST /api/receipts`
-- `GET /api/receipts/{id}`
-- `PUT /api/receipts/{id}`
-- `DELETE /api/receipts/{id}`
-- `GET /api/receipts/{id}/pdf`
+### Autenticacao
+- `POST /api/auth/login` — login com username/password; retorna access token e refresh token
+- `POST /api/auth/refresh` — renova o access token usando o refresh token
+- `POST /api/auth/logout` — invalida o refresh token no servidor
+
+### Usuarios _(requer perfil admin)_
+- `GET /api/users` — lista todos os usuarios
+- `GET /api/users/drivers` — lista motoristas ativos (usado pelo frontend para o seletor de motorista)
+- `POST /api/users` — cria usuario; `CoopAdmin` so pode criar `Driver`
+- `PUT /api/users/{id}/activate` — ativa usuario
+- `PUT /api/users/{id}/deactivate` — desativa usuario (nao pode desativar a si mesmo)
+
+### Clientes
+- `GET /api/clients` — lista clientes do motorista autenticado
+- `POST /api/clients` — cria cliente
+- `GET /api/clients/{id}` — detalhe do cliente
+- `PUT /api/clients/{id}` — atualiza cliente
+- `DELETE /api/clients/{id}` — remove cliente
+
+### Recibos
+- `GET /api/receipts` — lista recibos paginados; admin ve todos, motorista ve apenas os seus
+- `POST /api/receipts` — emite recibo; motorista emite para si; admin pode informar `driverUserId` para emitir em nome de outro
+- `GET /api/receipts/{id}` — detalhe do recibo
+- `PUT /api/receipts/{id}` — atualiza recibo
+- `DELETE /api/receipts/{id}` — exclui recibo
+- `GET /api/receipts/{id}/pdf` — gera e retorna o PDF do recibo
+
+### Relatorios
+- `GET /api/reports/monthly-summary` — resumo mensal de recibos (quantidade, total e media por mes)
+
+### Saude
+- `GET /health` — status do processo da API
+- `GET /health/ready` — status da conexao com o banco de dados
 
 ## Configuracao
 
@@ -71,7 +118,8 @@ Por padrao, o ambiente `Development` aponta para PostgreSQL local.
     "DefaultConnection": "Host=localhost;Port=5432;Database=receipt_generator;Username=postgres;Password=postgres"
   },
   "JwtSettings": {
-    "Secret": "change-this-development-secret-with-at-least-32-characters"
+    "Secret": "change-this-development-secret-with-at-least-32-characters",
+    "AccessTokenExpiryMinutes": 15
   },
   "Cooperative": {
     "Name": "COOPERTÁXI JUNDIAÍ",
@@ -84,7 +132,7 @@ Por padrao, o ambiente `Development` aponta para PostgreSQL local.
 }
 ```
 
-Os dados da cooperativa aparecem no cabecalho e rodape do PDF gerado. Em producao, podem ser sobrescritos via variaveis de ambiente no Render: `Cooperative__Name`, `Cooperative__TaxId`, `Cooperative__Phone`, etc.
+Os dados da cooperativa aparecem no cabecalho do PDF gerado. Em producao, podem ser sobrescritos via variaveis de ambiente no Render: `Cooperative__Name`, `Cooperative__TaxId`, `Cooperative__Phone`, etc.
 
 Para apontar para Supabase sem gravar senha no Git, use User Secrets:
 
@@ -135,8 +183,16 @@ O frontend usa `/api` e o `proxy.conf.json` encaminha as chamadas para `http://l
 
 ## Migration
 
+Para aplicar todas as migrations pendentes no banco configurado:
+
 ```bash
 dotnet ef database update --project src/ReceiptGenerator.Infrastructure/ReceiptGenerator.Infrastructure.csproj --startup-project src/ReceiptGenerator.Api/ReceiptGenerator.Api.csproj
+```
+
+Para criar uma nova migration apos alterar entidades:
+
+```bash
+dotnet ef migrations add NomeDaMigration --project src/ReceiptGenerator.Infrastructure/ReceiptGenerator.Infrastructure.csproj --startup-project src/ReceiptGenerator.Api/ReceiptGenerator.Api.csproj
 ```
 
 ## Deploy com Docker

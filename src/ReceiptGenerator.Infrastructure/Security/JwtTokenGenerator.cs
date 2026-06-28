@@ -23,15 +23,18 @@ public sealed class JwtTokenGenerator : ITokenGenerator
             ?? throw new InvalidOperationException("JWT secret is not configured.");
         var key = Encoding.UTF8.GetBytes(secret);
 
+        var expiryMinutes = int.TryParse(_configuration["JwtSettings:AccessTokenExpiryMinutes"], out var m) && m > 0 ? m : 15;
+
         var descriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(new[]
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Name, user.Username),
-                new Claim(ClaimTypes.Role, user.Role)
+                new Claim(ClaimTypes.Role, user.Role),
+                new Claim("fullName", user.FullName)
             }),
-            Expires = DateTime.UtcNow.AddDays(7),
+            Expires = DateTime.UtcNow.AddMinutes(expiryMinutes),
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
         };
 

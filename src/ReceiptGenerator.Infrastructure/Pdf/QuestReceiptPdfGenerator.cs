@@ -12,7 +12,9 @@ namespace ReceiptGenerator.Infrastructure.Pdf;
 public sealed class QuestReceiptPdfGenerator : IReceiptPdfGenerator
 {
     private static readonly CultureInfo Brazil = new("pt-BR");
-    private static readonly byte[] CooperativeLogo = LoadEmbeddedLogo();
+    private static readonly byte[] CooperativeLogo = LoadEmbeddedResource("coopertaxi-logo.png");
+
+    private const string SignatureFontFamily = "Dancing Script";
 
     private readonly CooperativeSettings _cooperative;
 
@@ -40,6 +42,11 @@ public sealed class QuestReceiptPdfGenerator : IReceiptPdfGenerator
             using var fontStream = File.OpenRead(fontFile);
             FontManager.RegisterFont(fontStream);
         }
+
+        // Fonte cursiva para a assinatura visual do motorista
+        using var sigFontStream = new MemoryStream(
+            LoadEmbeddedResource("DancingScript-Regular.ttf"));
+        FontManager.RegisterFont(sigFontStream);
     }
 
     public QuestReceiptPdfGenerator(IOptions<CooperativeSettings> cooperativeOptions)
@@ -159,15 +166,31 @@ public sealed class QuestReceiptPdfGenerator : IReceiptPdfGenerator
                         .FontSize(10).Italic();
 
                     // ── ASSINATURA ────────────────────────────────────────────
+                    var sigName = receipt.DriverName ?? receipt.IssuerName;
                     column.Item().PaddingTop(14).Row(sigRow =>
                     {
                         sigRow.ConstantItem(60);
                         sigRow.RelativeItem().Column(sig =>
                         {
+                            // Nome em cursiva acima da linha — representa a assinatura visual
+                            if (!string.IsNullOrWhiteSpace(sigName))
+                            {
+                                sig.Item().PaddingBottom(6).AlignCenter()
+                                    .Text(sigName)
+                                    .FontFamily(SignatureFontFamily)
+                                    .FontSize(26)
+                                    .FontColor(Colors.Grey.Darken4);
+                            }
+
                             sig.Item().LineHorizontal(1).LineColor(Colors.Grey.Darken2);
+
+                            // Identificação impressa abaixo da linha
                             sig.Item().PaddingTop(5).AlignCenter()
-                                .Text(receipt.DriverName ?? receipt.IssuerName ?? "Taxista / responsável")
+                                .Text(sigName ?? "Taxista / responsável")
                                 .SemiBold().FontSize(10);
+                            sig.Item().AlignCenter()
+                                .Text("Motorista")
+                                .FontSize(9).FontColor(Colors.Grey.Darken1);
                             if (!string.IsNullOrWhiteSpace(receipt.IssuerPhone))
                                 sig.Item().AlignCenter()
                                     .Text(receipt.IssuerPhone)
@@ -215,11 +238,11 @@ public sealed class QuestReceiptPdfGenerator : IReceiptPdfGenerator
         };
     }
 
-    private static byte[] LoadEmbeddedLogo()
+    private static byte[] LoadEmbeddedResource(string fileName)
     {
-        const string resourceName = "ReceiptGenerator.Infrastructure.Pdf.Assets.coopertaxi-logo.png";
+        var resourceName = $"ReceiptGenerator.Infrastructure.Pdf.Assets.{fileName}";
         using var stream = typeof(QuestReceiptPdfGenerator).Assembly.GetManifestResourceStream(resourceName)
-            ?? throw new InvalidOperationException($"Embedded logo '{resourceName}' was not found.");
+            ?? throw new InvalidOperationException($"Embedded resource '{resourceName}' was not found.");
         using var memory = new MemoryStream();
         stream.CopyTo(memory);
         return memory.ToArray();

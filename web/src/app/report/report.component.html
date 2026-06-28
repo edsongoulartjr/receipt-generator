@@ -1,41 +1,101 @@
 <div class="container">
     <h2 class="text-center my-4">Relatório Mensal</h2>
 
+    <div class="card mb-4 filters-card">
+        <div class="card-body">
+            <div class="filters-row">
+                <div class="filter-group">
+                    <label for="filterYear">Ano</label>
+                    <select id="filterYear" class="form-control" [(ngModel)]="selectedYear" (ngModelChange)="load()">
+                        <option [ngValue]="null">Todos os anos</option>
+                        <option *ngFor="let y of years" [value]="y">{{ y }}</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="filterMonth">Mês</label>
+                    <select id="filterMonth" class="form-control" [(ngModel)]="selectedMonth" (ngModelChange)="load()">
+                        <option [ngValue]="null">Todos os meses</option>
+                        <option *ngFor="let m of monthOptions" [value]="m.value">{{ m.label }}</option>
+                    </select>
+                </div>
+
+                <div class="filter-group" *ngIf="isAdmin">
+                    <label for="filterDriver">Motorista</label>
+                    <select id="filterDriver" class="form-control" [(ngModel)]="selectedDriverId" (ngModelChange)="load()">
+                        <option [ngValue]="null">Todos os motoristas</option>
+                        <option *ngFor="let d of drivers" [value]="d.id">{{ d.username }}</option>
+                    </select>
+                </div>
+
+                <div class="filter-group filter-actions">
+                    <button type="button" class="btn btn-outline-secondary" (click)="clearFilters()">Limpar filtros</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <p class="text-center" *ngIf="loading">Carregando...</p>
 
     <p class="error-msg" *ngIf="hasError">
         Não foi possível carregar o relatório. Verifique sua conexão e tente novamente.
     </p>
 
-    <div class="card" *ngIf="!loading && !hasError">
-        <div class="card-body">
-            <p *ngIf="summary.length === 0">Nenhum recibo emitido ainda.</p>
+    <ng-container *ngIf="!loading && !hasError && summary">
 
-            <div class="table-responsive" *ngIf="summary.length > 0">
-                <table class="table table-hover report-table">
-                    <thead>
-                        <tr>
-                            <th>Mês / Ano</th>
-                            <th class="text-center">Recibos</th>
-                            <th class="text-end">Total Recebido</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr *ngFor="let row of summary; trackBy: trackByMonth">
-                            <td>{{ monthName(row.month) }} / {{ row.year }}</td>
-                            <td class="text-center">{{ row.count }}</td>
-                            <td class="text-end">{{ row.totalAmount | currency:'BRL':'symbol':'1.2-2' }}</td>
-                        </tr>
-                    </tbody>
-                    <tfoot>
-                        <tr class="totals-row">
-                            <th>Total</th>
-                            <th class="text-center">{{ totalCount }}</th>
-                            <th class="text-end">{{ totalAmount | currency:'BRL':'symbol':'1.2-2' }}</th>
-                        </tr>
-                    </tfoot>
-                </table>
+        <div class="summary-cards" *ngIf="summary.totalCount > 0">
+            <div class="summary-card">
+                <div class="card-label">Total de corridas</div>
+                <div class="card-value">{{ summary.totalCount }}</div>
+            </div>
+            <div class="summary-card">
+                <div class="card-label">Valor total</div>
+                <div class="card-value">{{ summary.totalAmount | currency:'BRL':'symbol':'1.2-2' }}</div>
+            </div>
+            <div class="summary-card">
+                <div class="card-label">Média por corrida</div>
+                <div class="card-value">{{ summary.averageAmount | currency:'BRL':'symbol':'1.2-2' }}</div>
             </div>
         </div>
-    </div>
+
+        <div class="card">
+            <div class="card-body">
+                <p *ngIf="summary.rows.length === 0">Nenhum recibo encontrado para os filtros selecionados.</p>
+
+                <div class="table-responsive" *ngIf="summary.rows.length > 0">
+                    <table class="table table-hover report-table">
+                        <thead>
+                            <tr>
+                                <th>Mês / Ano</th>
+                                <th class="text-center">Corridas</th>
+                                <th class="text-end">Média</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let row of summary.rows; trackBy: trackByRow">
+                                <td>{{ monthName(row.month) }} / {{ row.year }}</td>
+                                <td class="text-center">{{ row.count }}</td>
+                                <td class="text-end">{{ row.averageAmount | currency:'BRL':'symbol':'1.2-2' }}</td>
+                                <td class="text-end">{{ row.totalAmount | currency:'BRL':'symbol':'1.2-2' }}</td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr class="totals-row">
+                                <th>Total</th>
+                                <th class="text-center">{{ summary.totalCount }}</th>
+                                <th class="text-end">{{ summary.averageAmount | currency:'BRL':'symbol':'1.2-2' }}</th>
+                                <th class="text-end">{{ summary.totalAmount | currency:'BRL':'symbol':'1.2-2' }}</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <div class="export-actions no-print" *ngIf="summary.rows.length > 0">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" (click)="exportCsv()">Exportar CSV</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" (click)="print()">Imprimir</button>
+                </div>
+            </div>
+        </div>
+    </ng-container>
 </div>

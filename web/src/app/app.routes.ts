@@ -4,14 +4,14 @@ import { ClientsComponent } from './clients/clients.component';
 import { ReceiptsComponent } from './receipts/receipts.component';
 import { ReportComponent } from './report/report.component';
 import { UsersComponent } from './users/users.component';
-import { authGuard, superAdminGuard } from './auth.guard';
+import { authGuard, adminGuard } from './auth.guard';
 
 export const routes: Routes = [
     { path: 'login', component: LoginComponent },
     { path: 'clients', component: ClientsComponent, canActivate: [authGuard] },
     { path: 'receipts', component: ReceiptsComponent, canActivate: [authGuard] },
     { path: 'report', component: ReportComponent, canActivate: [authGuard] },
-    { path: 'users', component: UsersComponent, canActivate: [superAdminGuard] },
+    { path: 'users', component: UsersComponent, canActivate: [adminGuard] },
     { path: '', redirectTo: '/login', pathMatch: 'full' },
     { path: '**', redirectTo: '/login' }
 ];

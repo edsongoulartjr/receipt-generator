@@ -25,32 +25,9 @@
                                 <option *ngFor="let client of clients; trackBy: trackByClientId" [value]="client.name"></option>
                             </datalist>
 
-                            <div class="new-client-prompt" *ngIf="showNewClientPrompt && !showClientDetails">
-                                <span>Novo cliente. Deseja salvar com mais detalhes?</span>
-                                <div class="prompt-actions">
-                                    <button type="button" class="btn btn-sm btn-outline-warning" (click)="acceptWithDetails()">Completar cadastro</button>
-                                    <button type="button" class="btn btn-sm btn-secondary" (click)="acceptNameOnly()">Salvar só o nome</button>
-                                </div>
-                            </div>
-
-                            <div class="new-client-details" *ngIf="showClientDetails">
-                                <div class="form-group">
-                                    <label for="newClientAddress">Endereço</label>
-                                    <input type="text" id="newClientAddress" [(ngModel)]="newClientAddress"
-                                        name="newClientAddress" class="form-control" placeholder="Opcional">
-                                </div>
-                                <div class="form-group">
-                                    <label for="newClientTaxId">CPF / CNPJ</label>
-                                    <input type="text" id="newClientTaxId"
-                                        [ngModel]="newClientTaxId"
-                                        (ngModelChange)="onNewClientTaxIdChange($event)"
-                                        name="newClientTaxId"
-                                        class="form-control"
-                                        inputmode="numeric"
-                                        maxlength="18"
-                                        placeholder="000.000.000-00 ou 00.000.000/0000-00">
-                                </div>
-                            </div>
+                            <p class="new-client-hint" *ngIf="showNewClientPrompt">
+                                Novo cliente — será cadastrado automaticamente ao emitir.
+                            </p>
                         </div>
                         <div class="form-group">
                             <label for="amount">Valor</label>
@@ -65,15 +42,37 @@
                             name="description" class="form-control" required>
                     </div>
                     <div class="form-group">
-                        <label for="serviceDates">Datas do Serviço</label>
-                        <input type="text" id="serviceDates" [(ngModel)]="currentReceipt.serviceDates"
-                            name="serviceDates" class="form-control" placeholder="Ex: 28 e 29/05/2026">
+                        <label for="serviceDates">Data do Serviço</label>
+                        <input type="date" id="serviceDates"
+                            [value]="serviceDateInput"
+                            (change)="onServiceDateChange($any($event.target).value)"
+                            name="serviceDates"
+                            class="form-control">
                     </div>
                 </div>
 
+                <!-- Seleção de motorista — visível apenas para admins ao criar novo recibo -->
+                <div class="form-section" *ngIf="authService.isAdminOrAbove() && !editingReceipt">
+                    <h4>Motorista</h4>
+                    <div class="form-group">
+                        <label for="driverSelect">Motorista responsável</label>
+                        <select id="driverSelect" [(ngModel)]="selectedDriverId" name="driverSelect"
+                            class="form-control" required>
+                            <option [ngValue]="null" disabled>Selecione o motorista</option>
+                            <option *ngFor="let d of drivers; trackBy: trackByUserId"
+                                [ngValue]="d.id">{{ d.fullName || d.username }}</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Nome do motorista — somente leitura para driver -->
+                <p class="driver-display" *ngIf="authService.isDriver()">
+                    Motorista: <strong>{{ authService.getFullName() }}</strong>
+                </p>
+
                 <button type="button" class="toggle-extras" (click)="showExtras = !showExtras"
                     [attr.aria-expanded]="showExtras">
-                    {{ showExtras ? '▲ Ocultar horários e motorista' : '▼ Adicionar horários e motorista' }}
+                    {{ showExtras ? '▲ Ocultar horários' : '▼ Adicionar horários' }}
                 </button>
 
                 <div *ngIf="showExtras">
@@ -90,15 +89,6 @@
                                 <input type="time" id="endTime" [(ngModel)]="currentReceipt.endTime" name="endTime"
                                     class="form-control">
                             </div>
-                        </div>
-                    </div>
-
-                    <div class="form-section">
-                        <h4>Motorista</h4>
-                        <div class="form-group">
-                            <label for="driverName">Nome do Motorista</label>
-                            <input type="text" id="driverName" [(ngModel)]="currentReceipt.driverName"
-                                name="driverName" class="form-control" autocomplete="name" maxlength="200">
                         </div>
                     </div>
                 </div>
@@ -127,92 +117,95 @@
             <h3>Recibos Emitidos</h3>
         </div>
         <div class="card-body">
-            <p *ngIf="receipts.length === 0">Nenhum recibo emitido ainda.</p>
-            <p class="share-feedback" role="status" *ngIf="shareFeedback">{{ shareFeedback }}</p>
-
-            <div class="receipt-cards" *ngIf="receipts.length > 0">
-                <article class="receipt-card" *ngFor="let receipt of receipts; trackBy: trackByReceiptId">
-                    <div>
-                        <strong>#{{ receipt.id }}</strong>
-                        <span>{{ receipt.amount | currency:'BRL':'symbol':'1.2-2' }}</span>
-                    </div>
-                    <p>{{ receipt.client?.name }}</p>
-                    <small>{{ receipt.description }}</small>
-                    <dl>
-                        <div>
-                            <dt>Data</dt>
-                            <dd>{{ receipt.date | date:'shortDate' }}</dd>
-                        </div>
-                        <div>
-                            <dt>Início</dt>
-                            <dd>{{ toTimeInput(receipt.startTime) || '-' }}</dd>
-                        </div>
-                        <div>
-                            <dt>Fim</dt>
-                            <dd>{{ toTimeInput(receipt.endTime) || '-' }}</dd>
-                        </div>
-                    </dl>
-                    <div class="card-actions">
-                        <button type="button" class="btn btn-whatsapp" (click)="shareWhatsApp(receipt)">
-                            WhatsApp
-                        </button>
-                        <button type="button" class="btn btn-success" (click)="sharePdf(receipt)"
-                            [disabled]="sharingReceiptId !== null">
-                            {{ sharingReceiptId === receipt.id ? 'Preparando...' : 'PDF' }}
-                        </button>
-                        <button type="button" class="btn btn-info" (click)="editReceipt(receipt)">Editar</button>
-                        <button type="button" class="btn btn-danger" (click)="deleteReceipt(receipt.id!)">Excluir</button>
-                    </div>
-                </article>
+            <p *ngIf="receipts.length === 0 && !isLoadingPage">Nenhum recibo emitido ainda.</p>
+            <div class="share-feedback" role="status" *ngIf="shareFeedback">
+                <span>{{ shareFeedback }}</span>
+                <button type="button" class="close-btn" (click)="clearFeedback()" aria-label="Fechar">✕</button>
             </div>
 
-            <nav class="pagination-nav" *ngIf="totalPages > 1" aria-label="Navegação de páginas">
-                <button type="button" class="btn btn-secondary btn-sm" (click)="prevPage()" [disabled]="currentPage === 1">
-                    ← Anterior
-                </button>
-                <span class="pagination-info">{{ currentPage }} / {{ totalPages }} &nbsp;·&nbsp; {{ totalCount }} recibos</span>
-                <button type="button" class="btn btn-secondary btn-sm" (click)="nextPage()" [disabled]="currentPage === totalPages">
-                    Próxima →
-                </button>
-            </nav>
+            <div class="receipts-list" [class.is-loading]="isLoadingPage">
+                <div class="receipt-cards" *ngIf="receipts.length > 0">
+                    <article class="receipt-card" *ngFor="let receipt of receipts; trackBy: trackByReceiptId">
+                        <div>
+                            <strong>#{{ receipt.id }}</strong>
+                            <span>{{ receipt.amount | currency:'BRL':'symbol':'1.2-2' }}</span>
+                        </div>
+                        <h3 class="card-client-name">{{ receipt.client?.name }}</h3>
+                        <small>{{ receipt.description }}</small>
+                        <dl>
+                            <div>
+                                <dt>Data</dt>
+                                <dd>{{ receipt.date | date:'dd/MM/yyyy' }}</dd>
+                            </div>
+                            <div>
+                                <dt>Início</dt>
+                                <dd>{{ toTimeInput(receipt.startTime) || '-' }}</dd>
+                            </div>
+                            <div>
+                                <dt>Fim</dt>
+                                <dd>{{ toTimeInput(receipt.endTime) || '-' }}</dd>
+                            </div>
+                        </dl>
+                        <div class="card-actions">
+                            <button type="button" class="btn btn-share" (click)="shareReceipt(receipt)"
+                                [disabled]="sharingReceiptId !== null">
+                                <span class="spinner" *ngIf="sharingReceiptId === receipt.id"></span>
+                                {{ sharingReceiptId === receipt.id ? 'Preparando...' : 'Compartilhar' }}
+                            </button>
+                            <button type="button" class="btn btn-info" (click)="editReceipt(receipt)">Editar</button>
+                            <button type="button" class="btn btn-danger" (click)="deleteReceipt(receipt.id!)">Excluir</button>
+                        </div>
+                    </article>
+                </div>
 
-            <div class="table-responsive">
-                <table class="table table-striped table-hover" *ngIf="receipts.length > 0">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Cliente</th>
-                            <th>Descrição</th>
-                            <th>Valor</th>
-                            <th>Data</th>
-                            <th>Início</th>
-                            <th>Fim</th>
-                            <th>Motorista</th>
-                            <th>Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr *ngFor="let receipt of receipts; trackBy: trackByReceiptId">
-                            <td>{{ receipt.id }}</td>
-                            <td>{{ receipt.client?.name }}</td>
-                            <td>{{ receipt.description }}</td>
-                            <td>{{ receipt.amount | currency:'BRL':'symbol':'1.2-2' }}</td>
-                            <td>{{ receipt.date | date:'shortDate' }}</td>
-                            <td>{{ toTimeInput(receipt.startTime) }}</td>
-                            <td>{{ toTimeInput(receipt.endTime) }}</td>
-                            <td>{{ receipt.driverName }}</td>
-                            <td>
-                                <button type="button" class="btn btn-whatsapp btn-sm me-2" (click)="shareWhatsApp(receipt)">WhatsApp</button>
-                                <button type="button" class="btn btn-success btn-sm me-2" (click)="sharePdf(receipt)"
-                                    [disabled]="sharingReceiptId !== null">
-                                    {{ sharingReceiptId === receipt.id ? 'Preparando...' : 'PDF' }}
-                                </button>
-                                <button type="button" class="btn btn-info btn-sm me-2" (click)="editReceipt(receipt)">Editar</button>
-                                <button type="button" class="btn btn-danger btn-sm" (click)="deleteReceipt(receipt.id!)">Excluir</button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                <nav class="pagination-nav" *ngIf="totalPages > 1" aria-label="Navegação de páginas">
+                    <button type="button" class="btn btn-secondary btn-sm" (click)="prevPage()" [disabled]="currentPage === 1">
+                        ← Anterior
+                    </button>
+                    <span class="pagination-info">{{ currentPage }} / {{ totalPages }} &nbsp;·&nbsp; {{ totalCount }} recibos</span>
+                    <button type="button" class="btn btn-secondary btn-sm" (click)="nextPage()" [disabled]="currentPage === totalPages">
+                        Próxima →
+                    </button>
+                </nav>
+
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" *ngIf="receipts.length > 0">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Cliente</th>
+                                <th>Descrição</th>
+                                <th>Valor</th>
+                                <th>Data</th>
+                                <th>Início</th>
+                                <th>Fim</th>
+                                <th>Motorista</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let receipt of receipts; trackBy: trackByReceiptId">
+                                <td>{{ receipt.id }}</td>
+                                <td>{{ receipt.client?.name }}</td>
+                                <td>{{ receipt.description }}</td>
+                                <td>{{ receipt.amount | currency:'BRL':'symbol':'1.2-2' }}</td>
+                                <td>{{ receipt.date | date:'dd/MM/yyyy' }}</td>
+                                <td>{{ toTimeInput(receipt.startTime) }}</td>
+                                <td>{{ toTimeInput(receipt.endTime) }}</td>
+                                <td>{{ receipt.driverName }}</td>
+                                <td>
+                                    <button type="button" class="btn btn-share btn-sm me-2" (click)="shareReceipt(receipt)"
+                                        [disabled]="sharingReceiptId !== null">
+                                        <span class="spinner" *ngIf="sharingReceiptId === receipt.id"></span>
+                                        {{ sharingReceiptId === receipt.id ? 'Preparando...' : 'Compartilhar' }}
+                                    </button>
+                                    <button type="button" class="btn btn-info btn-sm me-2" (click)="editReceipt(receipt)">Editar</button>
+                                    <button type="button" class="btn btn-danger btn-sm" (click)="deleteReceipt(receipt.id!)">Excluir</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>

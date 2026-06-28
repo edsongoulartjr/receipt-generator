@@ -24,7 +24,8 @@ public sealed class Receipt
         ClientId = clientId > 0 ? clientId : throw new ArgumentOutOfRangeException(nameof(clientId));
         UserId = userId > 0 ? userId : throw new ArgumentOutOfRangeException(nameof(userId));
         Date = DateTime.UtcNow;
-        Update(description, amount, startTime, endTime, serviceDates, issuerName, issuerPhone, issuerEmail, driverName);
+        DriverName = Optional(driverName, 200);
+        Update(description, amount, startTime, endTime, serviceDates, issuerName, issuerPhone, issuerEmail);
     }
 
     public int Id { get; private set; }
@@ -62,8 +63,7 @@ public sealed class Receipt
         string? serviceDates,
         string? issuerName,
         string? issuerPhone,
-        string? issuerEmail,
-        string? driverName)
+        string? issuerEmail)
     {
         if (amount <= 0)
         {
@@ -83,7 +83,6 @@ public sealed class Receipt
         IssuerName = Optional(issuerName, 200);
         IssuerPhone = Optional(issuerPhone, 50);
         IssuerEmail = Optional(issuerEmail, 200);
-        DriverName = Optional(driverName, 200);
     }
 
     private static string Required(string value, string fieldName, int maxLength)

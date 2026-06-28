@@ -4,8 +4,9 @@ import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ReceiptService, Receipt, PagedResponse } from '../receipt.service';
 import { ClientService, Client } from '../client.service';
+import { AuthService } from '../auth.service';
+import { UserService, User } from '../user.service';
 import { firstValueFrom } from 'rxjs';
-import { formatCpfCnpj } from '../utils/tax-id.utils';
 
 @Component({
   selector: 'app-receipts',
@@ -24,19 +25,21 @@ export class ReceiptsComponent implements OnInit {
 
   receipts: Receipt[] = [];
   clients: Client[] = [];
+  drivers: User[] = [];
+  selectedDriverId: number | null = null;
   currentReceipt: Receipt = this.emptyReceipt();
   editingReceipt = false;
   amountDisplay = '';
   sharingReceiptId: number | null = null;
   shareFeedback = '';
   isSubmitting = false;
+  isLoadingPage = false;
 
   clientNameInput = '';
   resolvedClientId = 0;
   showNewClientPrompt = false;
-  showClientDetails = false;
-  newClientAddress = '';
-  newClientTaxId = '';
+
+  serviceDateInput = ''; // YYYY-MM-DD (valor interno do <input type="date">)
 
   showExtras = false;
   lastCreatedReceipt: Receipt | null = null;
@@ -48,16 +51,26 @@ export class ReceiptsComponent implements OnInit {
 
   constructor(
     private receiptService: ReceiptService,
-    private clientService: ClientService
+    private clientService: ClientService,
+    public authService: AuthService,
+    private userService: UserService
   ) { }
 
   ngOnInit(): void {
     this.loadClients();
     this.loadReceipts();
-    const savedDriver = localStorage.getItem('driverName');
-    if (savedDriver) {
-      this.currentReceipt.driverName = savedDriver;
+    if (this.authService.isAdminOrAbove()) {
+      this.loadDrivers();
     }
+  }
+
+  loadDrivers(): void {
+    this.userService.getDrivers()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (data) => { this.drivers = data; },
+        error: (err) => { console.error('Erro ao buscar motoristas', err); }
+      });
   }
 
   loadClients(): void {
@@ -70,6 +83,7 @@ export class ReceiptsComponent implements OnInit {
   }
 
   loadReceipts(): void {
+    this.isLoadingPage = true;
     this.receiptService.getReceipts(this.currentPage, this.pageSize)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
@@ -77,8 +91,12 @@ export class ReceiptsComponent implements OnInit {
           this.receipts = data.items;
           this.totalPages = data.totalPages;
           this.totalCount = data.totalCount;
+          this.isLoadingPage = false;
         },
-        error: (err) => { console.error('Erro ao buscar recibos', err); }
+        error: (err) => {
+          console.error('Erro ao buscar recibos', err);
+          this.isLoadingPage = false;
+        }
       });
   }
 
@@ -98,7 +116,6 @@ export class ReceiptsComponent implements OnInit {
     if (!trimmed) {
       this.resolvedClientId = 0;
       this.showNewClientPrompt = false;
-      this.showClientDetails = false;
       return;
     }
 
@@ -106,24 +123,20 @@ export class ReceiptsComponent implements OnInit {
     if (match) {
       this.resolvedClientId = match.id!;
       this.showNewClientPrompt = false;
-      this.showClientDetails = false;
     } else {
       this.resolvedClientId = 0;
       this.showNewClientPrompt = true;
     }
   }
 
-  acceptWithDetails(): void {
-    this.showClientDetails = true;
-  }
-
-  onNewClientTaxIdChange(value: string): void {
-    this.newClientTaxId = formatCpfCnpj(value);
-  }
-
-  acceptNameOnly(): void {
-    this.showClientDetails = false;
-    this.showNewClientPrompt = false;
+  onServiceDateChange(value: string): void {
+    this.serviceDateInput = value;
+    if (value) {
+      const [y, m, d] = value.split('-');
+      this.currentReceipt.serviceDates = `${d}/${m}/${y}`;
+    } else {
+      this.currentReceipt.serviceDates = '';
+    }
   }
 
   async saveReceipt(): Promise<void> {
@@ -143,11 +156,7 @@ export class ReceiptsComponent implements OnInit {
 
       try {
         const created = await firstValueFrom(
-          this.clientService.addClient({
-            name,
-            address: this.newClientAddress.trim(),
-            taxId: this.newClientTaxId.trim()
-          })
+          this.clientService.addClient({ name, address: '', taxId: '' })
         );
         clientId = created.id!;
         this.clients.push(created);
@@ -158,7 +167,7 @@ export class ReceiptsComponent implements OnInit {
       }
     }
 
-    const payload = this.toApiPayload({ ...this.currentReceipt, clientId });
+    const payload = this.toApiPayload({ ...this.currentReceipt, clientId, driverUserId: this.selectedDriverId ?? undefined });
 
     if (this.editingReceipt) {
       this.receiptService.updateReceipt(this.currentReceipt.id!, payload)
@@ -175,11 +184,6 @@ export class ReceiptsComponent implements OnInit {
           }
         });
       return;
-    }
-
-    const driverName = this.currentReceipt.driverName?.trim();
-    if (driverName) {
-      localStorage.setItem('driverName', driverName);
     }
 
     this.receiptService.addReceipt(payload)
@@ -208,8 +212,8 @@ export class ReceiptsComponent implements OnInit {
     this.clientNameInput = receipt.client?.name ?? '';
     this.resolvedClientId = receipt.clientId;
     this.showNewClientPrompt = false;
-    this.showClientDetails = false;
-    this.showExtras = !!(receipt.startTime || receipt.endTime || receipt.driverName);
+    this.serviceDateInput = this.parseDateForInput(receipt.serviceDates ?? '');
+    this.showExtras = !!(receipt.startTime || receipt.endTime);
     this.amountDisplay = this.formatCurrency(receipt.amount);
     this.editingReceipt = true;
   }
@@ -217,14 +221,16 @@ export class ReceiptsComponent implements OnInit {
   cancelEdit(): void {
     this.currentReceipt = this.emptyReceipt();
     this.amountDisplay = '';
+    this.serviceDateInput = '';
     this.editingReceipt = false;
     this.showExtras = false;
+    this.selectedDriverId = null;
     this.resetClientState();
   }
 
   shareLastReceipt(): void {
     if (this.lastCreatedReceipt) {
-      this.sharePdf(this.lastCreatedReceipt);
+      this.shareReceipt(this.lastCreatedReceipt);
     }
     this.lastCreatedReceipt = null;
   }
@@ -252,7 +258,7 @@ export class ReceiptsComponent implements OnInit {
     input.value = this.amountDisplay;
   }
 
-  async sharePdf(receipt: Receipt): Promise<void> {
+  async shareReceipt(receipt: Receipt): Promise<void> {
     if (!receipt.id || this.sharingReceiptId !== null) {
       return;
     }
@@ -267,52 +273,28 @@ export class ReceiptsComponent implements OnInit {
       const file = new File([blob], fileName, { type: 'application/pdf' });
 
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        const amountFormatted = ReceiptsComponent.currencyFormatter.format(receipt.amount);
         await navigator.share({
-          title: `Recibo ${receiptNumber}`,
-          text: `Recibo da Coopertáxi Jundiaí para ${receipt.client?.name || 'cliente'}.`,
+          title: `Recibo Nº ${receiptNumber}`,
+          text: `Recibo Nº ${receiptNumber} — ${receipt.client?.name ?? 'cliente'} — ${amountFormatted} — Coopertáxi Jundiaí.`,
           files: [file]
         });
         return;
       }
 
+      // Fallback para desktop ou navegadores sem suporte à Web Share API
       this.downloadPdf(blob, fileName);
-      this.shareFeedback = 'O compartilhamento de arquivos não está disponível neste navegador. O PDF foi baixado.';
+      this.setFeedback(`PDF "${fileName}" baixado. Para enviar pelo WhatsApp, abra o WhatsApp Web e anexe o arquivo.`);
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
+        // Usuário cancelou o seletor nativo — comportamento esperado, sem feedback de erro
         return;
       }
-
-      console.error('Erro ao compartilhar PDF', error);
-      this.shareFeedback = 'Não foi possível preparar o recibo para compartilhamento. Tente novamente.';
+      console.error('Erro ao compartilhar recibo', error);
+      this.setFeedback('Não foi possível preparar o recibo. Tente novamente.');
     } finally {
       this.sharingReceiptId = null;
     }
-  }
-
-  shareWhatsApp(receipt: Receipt): void {
-    const number = (receipt.number ?? receipt.id ?? 0).toString().padStart(6, '0');
-    const amount = ReceiptsComponent.currencyFormatter.format(receipt.amount);
-    const date = receipt.date ? new Date(receipt.date).toLocaleDateString('pt-BR') : '';
-    const client = receipt.client?.name ?? 'cliente';
-
-    const lines = [
-      `*Recibo Nº ${number}*`,
-      `Coopertáxi Jundiaí`,
-      ``,
-      `*Cliente:* ${client}`,
-      `*Valor:* ${amount}`,
-      `*Data:* ${date}`,
-      `*Serviço:* ${receipt.description}`,
-      ``,
-      `_Documento emitido eletronicamente._`
-    ];
-
-    if (receipt.driverName?.trim()) {
-      lines.splice(7, 0, `*Motorista:* ${receipt.driverName.trim()}`);
-    }
-
-    const url = `https://wa.me/?text=${encodeURIComponent(lines.join('\n'))}`;
-    window.open(url, '_blank', 'noopener,noreferrer');
   }
 
   toTimeInput(value?: string): string {
@@ -322,9 +304,10 @@ export class ReceiptsComponent implements OnInit {
 
   private resetForm(): void {
     this.currentReceipt = this.emptyReceipt();
-    this.currentReceipt.driverName = localStorage.getItem('driverName') ?? '';
     this.amountDisplay = '';
+    this.serviceDateInput = '';
     this.showExtras = false;
+    this.selectedDriverId = null;
     this.resetClientState();
   }
 
@@ -332,9 +315,6 @@ export class ReceiptsComponent implements OnInit {
     this.clientNameInput = '';
     this.resolvedClientId = 0;
     this.showNewClientPrompt = false;
-    this.showClientDetails = false;
-    this.newClientAddress = '';
-    this.newClientTaxId = '';
   }
 
   private emptyReceipt(): Receipt {
@@ -344,8 +324,7 @@ export class ReceiptsComponent implements OnInit {
       amount: 0,
       startTime: '',
       endTime: '',
-      serviceDates: '',
-      driverName: ''
+      serviceDates: ''
     };
   }
 
@@ -358,8 +337,15 @@ export class ReceiptsComponent implements OnInit {
       startTime: this.toDateTime(receipt.startTime),
       endTime: this.toDateTime(receipt.endTime),
       serviceDates: receipt.serviceDates,
-      driverName: receipt.driverName
+      driverUserId: receipt.driverUserId
     };
+  }
+
+  private parseDateForInput(serviceDates: string): string {
+    // Converte dd/MM/YYYY → YYYY-MM-DD para o <input type="date">
+    const match = serviceDates?.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!match) return '';
+    return `${match[3]}-${match[2]}-${match[1]}`;
   }
 
   private toDateTime(value?: string): string | undefined {
@@ -376,8 +362,21 @@ export class ReceiptsComponent implements OnInit {
     return client.id;
   }
 
+  trackByUserId(_index: number, user: User): number {
+    return user.id;
+  }
+
   private formatCurrency(value: number): string {
     return ReceiptsComponent.currencyFormatter.format(value);
+  }
+
+  clearFeedback(): void {
+    this.shareFeedback = '';
+  }
+
+  private setFeedback(message: string): void {
+    this.shareFeedback = message;
+    setTimeout(() => { this.shareFeedback = ''; }, 12000);
   }
 
   private downloadPdf(blob: Blob, fileName: string): void {

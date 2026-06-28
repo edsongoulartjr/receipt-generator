@@ -1,16 +1,25 @@
 <nav class="navbar" *ngIf="authService.isAuthenticated$ | async">
-    <a routerLink="/" class="navbar-brand" aria-label="Coopertaxi Jundiaí">
-        <span class="brand-mark">CT</span>
-        <span class="brand-copy">
-            <strong>Coopertaxi Jundiaí</strong>
-            <small>Recibos corporativos</small>
-        </span>
-    </a>
-    <div class="navbar-links">
-        <a routerLink="/clients" routerLinkActive="active" class="nav-link">Clientes</a>
-        <a routerLink="/receipts" routerLinkActive="active" class="nav-link">Recibos</a>
-        <a routerLink="/report" routerLinkActive="active" class="nav-link">Relatório</a>
-        <a routerLink="/users" routerLinkActive="active" class="nav-link" *ngIf="authService.isSuperAdmin()">Usuários</a>
+    <div class="navbar-top">
+        <a routerLink="/" class="navbar-brand" aria-label="Coopertaxi Jundiaí">
+            <span class="brand-mark">CT</span>
+            <span class="brand-copy">
+                <strong>Coopertaxi Jundiaí</strong>
+                <small>Recibos corporativos</small>
+            </span>
+        </a>
+        <button type="button" class="hamburger" (click)="toggleMenu()"
+            [attr.aria-expanded]="menuOpen" aria-label="Abrir menu de navegação">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+    </div>
+    <div class="navbar-links" [class.open]="menuOpen">
+        <a routerLink="/clients" routerLinkActive="active" class="nav-link" (click)="menuOpen = false">Clientes</a>
+        <a routerLink="/receipts" routerLinkActive="active" class="nav-link" (click)="menuOpen = false">Recibos</a>
+        <span class="nav-separator" aria-hidden="true"></span>
+        <a routerLink="/report" routerLinkActive="active" class="nav-link nav-link-secondary" (click)="menuOpen = false">Relatório</a>
+        <a routerLink="/users" routerLinkActive="active" class="nav-link nav-link-secondary" *ngIf="authService.isAdminOrAbove()" (click)="menuOpen = false">Usuários</a>
         <button type="button" (click)="logout()" class="nav-link logout-button">Sair</button>
     </div>
 </nav>

@@ -23,6 +23,12 @@ public sealed class UserService : IUserService
         return users.Select(Map).ToList();
     }
 
+    public async Task<IReadOnlyList<UserResponse>> GetActiveDriversAsync(CancellationToken cancellationToken = default)
+    {
+        var drivers = await _users.GetActiveDriversAsync(cancellationToken);
+        return drivers.Select(Map).ToList();
+    }
+
     public async Task<CreateUserResult> CreateAsync(CreateUserRequest request, CancellationToken cancellationToken = default)
     {
         if (!UserRole.IsValid(request.Role))
@@ -35,7 +41,7 @@ public sealed class UserService : IUserService
             return new CreateUserResult(CreateUserStatus.UsernameAlreadyExists);
         }
 
-        var user = new User(request.Username, _passwordHasher.Hash(request.Password), request.Role);
+        var user = new User(request.Username, _passwordHasher.Hash(request.Password), request.Role, request.FullName);
         await _users.AddAsync(user, cancellationToken);
         return new CreateUserResult(CreateUserStatus.Created, Map(user));
     }
@@ -66,8 +72,6 @@ public sealed class UserService : IUserService
         return true;
     }
 
-    private static UserResponse Map(User user)
-    {
-        return new UserResponse(user.Id, user.Username, user.Role, user.IsActive);
-    }
+    private static UserResponse Map(User user) =>
+        new(user.Id, user.Username, user.FullName, user.Role, user.IsActive);
 }

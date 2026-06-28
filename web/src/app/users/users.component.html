@@ -6,7 +6,12 @@
         <form #userForm="ngForm" (ngSubmit)="createUser()">
             <div class="form-grid">
                 <div class="form-group">
-                    <label for="username">Usuário</label>
+                    <label for="fullName">Nome completo</label>
+                    <input type="text" id="fullName" [(ngModel)]="currentUser.fullName" name="fullName"
+                        maxlength="200" placeholder="Nome exibido nos recibos">
+                </div>
+                <div class="form-group">
+                    <label for="username">Usuário (login)</label>
                     <input type="text" id="username" [(ngModel)]="currentUser.username" name="username"
                         maxlength="100" required>
                 </div>
@@ -20,7 +25,7 @@
                     <label for="role">Perfil</label>
                     <select id="role" [(ngModel)]="currentUser.role" name="role">
                         <option *ngFor="let role of roles; trackBy: trackByRole" [ngValue]="role">
-                            {{ role === 'SuperAdmin' ? 'Super administrador' : 'Operador' }}
+                            {{ roleLabel(role) }}
                         </option>
                     </select>
                 </div>
@@ -38,10 +43,11 @@
         <div class="user-cards" *ngIf="users.length > 0">
             <article class="user-card" *ngFor="let user of users; trackBy: trackByUserId">
                 <div>
-                    <strong>{{ user.username }}</strong>
+                    <strong>{{ user.fullName || user.username }}</strong>
                     <span [class.inactive]="!user.isActive">{{ user.isActive ? 'Ativo' : 'Inativo' }}</span>
                 </div>
-                <p>{{ user.role === 'SuperAdmin' ? 'Super administrador' : 'Operador' }}</p>
+                <p class="user-card-username" *ngIf="user.fullName">{{ user.username }}</p>
+                <p>{{ roleLabel(user.role) }}</p>
                 <button type="button" class="btn btn-success" *ngIf="!user.isActive" (click)="activate(user)">Ativar</button>
                 <button type="button" class="btn btn-danger" *ngIf="user.isActive" (click)="deactivate(user)">Desativar</button>
             </article>
@@ -50,6 +56,7 @@
         <table class="table" *ngIf="users.length > 0">
             <thead>
                 <tr>
+                    <th>Nome</th>
                     <th>Usuário</th>
                     <th>Perfil</th>
                     <th>Status</th>
@@ -58,8 +65,9 @@
             </thead>
             <tbody>
                 <tr *ngFor="let user of users; trackBy: trackByUserId">
+                    <td>{{ user.fullName || '—' }}</td>
                     <td>{{ user.username }}</td>
-                    <td>{{ user.role === 'SuperAdmin' ? 'Super administrador' : 'Operador' }}</td>
+                    <td>{{ roleLabel(user.role) }}</td>
                     <td>{{ user.isActive ? 'Ativo' : 'Inativo' }}</td>
                     <td>
                         <button type="button" class="btn btn-success btn-sm" *ngIf="!user.isActive" (click)="activate(user)">

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using ReceiptGenerator.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using ReceiptGenerator.Infrastructure.Persistence;
 namespace ReceiptGenerator.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260628145544_AddRefreshTokenColumns")]
+    partial class AddRefreshTokenColumns
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -114,9 +117,7 @@ namespace ReceiptGenerator.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("ClientId");
 
-                    b.HasIndex("UserId", "Date")
-                        .IsDescending(false, true)
-                        .HasDatabaseName("ix_receipts_userid_date");
+                    b.HasIndex("UserId");
 
                     b.ToTable("Receipts");
                 });
@@ -128,13 +129,6 @@ namespace ReceiptGenerator.Infrastructure.Persistence.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)")
-                        .HasDefaultValue("");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");

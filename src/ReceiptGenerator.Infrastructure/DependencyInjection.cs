@@ -34,6 +34,7 @@ public static class DependencyInjection
         services.AddScoped<IReceiptRepository, ReceiptRepository>();
         services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
         services.AddScoped<ITokenGenerator, JwtTokenGenerator>();
+        services.AddScoped<IRefreshTokenGenerator, RefreshTokenGenerator>();
         services.AddScoped<IReceiptPdfGenerator, QuestReceiptPdfGenerator>();
         services.AddHostedService<SuperAdminBootstrapHostedService>();
 

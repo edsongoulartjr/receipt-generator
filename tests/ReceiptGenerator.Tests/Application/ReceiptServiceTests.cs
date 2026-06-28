@@ -57,41 +57,6 @@ public sealed class ReceiptServiceTests
     }
 
     // -----------------------------------------------------------------------
-    // GetMonthlySummaryAsync
-    // -----------------------------------------------------------------------
-
-    [Fact(DisplayName = "GetMonthlySummary returns aggregated totals mapped to response DTOs")]
-    public async Task GetMonthlySummaryAsync_ReturnsMappedSummary()
-    {
-        var reports = new List<MonthlyReport>
-        {
-            new(2026, 6, 5, 750m),
-            new(2026, 5, 3, 420m)
-        };
-        _receipts.GetMonthlySummaryAsync(10, Arg.Any<CancellationToken>())
-            .Returns(reports);
-
-        var result = await _sut.GetMonthlySummaryAsync(10);
-
-        result.Should().HaveCount(2);
-        result[0].Year.Should().Be(2026);
-        result[0].Month.Should().Be(6);
-        result[0].Count.Should().Be(5);
-        result[0].TotalAmount.Should().Be(750m);
-    }
-
-    [Fact(DisplayName = "GetMonthlySummary returns empty list when user has no receipts")]
-    public async Task GetMonthlySummaryAsync_WhenNoReceipts_ReturnsEmptyList()
-    {
-        _receipts.GetMonthlySummaryAsync(99, Arg.Any<CancellationToken>())
-            .Returns(new List<MonthlyReport>());
-
-        var result = await _sut.GetMonthlySummaryAsync(99);
-
-        result.Should().BeEmpty();
-    }
-
-    // -----------------------------------------------------------------------
     // GetByIdAsync
     // -----------------------------------------------------------------------
 

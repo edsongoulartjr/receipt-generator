@@ -1,4 +1,4 @@
-using AwesomeAssertions;
+﻿using AwesomeAssertions;
 using NSubstitute;
 using ReceiptGenerator.Application.DTOs;
 using ReceiptGenerator.Application.Services;
@@ -90,7 +90,7 @@ public sealed class ClientServiceTests
     [Fact(DisplayName = "Create persists the client and returns a response when data is valid")]
     public async Task CreateAsync_WithValidData_AddsClientAndReturnsResponse()
     {
-        var user = new User("taxista01", "hash", UserRole.Operator);
+        var user = new User("taxista01", "hash", UserRole.Driver);
         _users.GetByIdAsync(10, Arg.Any<CancellationToken>())
             .Returns(user);
 
@@ -105,7 +105,7 @@ public sealed class ClientServiceTests
     [Fact(DisplayName = "Create persists a client with empty address and tax id when only name is provided")]
     public async Task CreateAsync_WithNameOnly_AddsClientWithEmptyAddressAndTaxId()
     {
-        var user = new User("taxista01", "hash", UserRole.Operator);
+        var user = new User("taxista01", "hash", UserRole.Driver);
         _users.GetByIdAsync(10, Arg.Any<CancellationToken>())
             .Returns(user);
 
@@ -179,3 +179,4 @@ public sealed class ClientServiceTests
         await _clients.Received(1).DeleteAsync(client, Arg.Any<CancellationToken>());
     }
 }
+

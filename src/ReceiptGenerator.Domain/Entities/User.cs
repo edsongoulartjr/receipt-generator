@@ -6,24 +6,30 @@ public sealed class User
     {
         Username = string.Empty;
         PasswordHash = string.Empty;
-        Role = UserRole.Operator;
+        FullName = string.Empty;
+        Role = UserRole.Driver;
         IsActive = true;
     }
 
-    public User(string username, string passwordHash, string role = UserRole.Operator)
+    public User(string username, string passwordHash, string role = UserRole.Driver, string? fullName = null)
     {
-        Role = UserRole.Operator;
+        Role = UserRole.Driver;
         Username = Required(username, nameof(username), 100);
         PasswordHash = Required(passwordHash, nameof(passwordHash), 500);
+        FullName = string.Empty;
         ChangeRole(role);
+        SetFullName(fullName);
         IsActive = true;
     }
 
     public int Id { get; private set; }
     public string Username { get; private set; }
     public string PasswordHash { get; private set; }
+    public string FullName { get; private set; }
     public string Role { get; private set; }
     public bool IsActive { get; private set; }
+    public string? RefreshTokenHash { get; private set; }
+    public DateTime? RefreshTokenExpiry { get; private set; }
 
     public void ChangeRole(string role)
     {
@@ -32,15 +38,34 @@ public sealed class User
             : throw new ArgumentException("Invalid user role.", nameof(role));
     }
 
-    public void Activate()
+    public void SetFullName(string? fullName)
     {
-        IsActive = true;
+        var trimmed = fullName?.Trim() ?? string.Empty;
+        FullName = trimmed.Length > 200
+            ? throw new ArgumentException("FullName must have at most 200 characters.", nameof(fullName))
+            : trimmed;
     }
 
-    public void Deactivate()
+    public void Activate() => IsActive = true;
+
+    public void Deactivate() => IsActive = false;
+
+    public void SetRefreshToken(string tokenHash, DateTime expiry)
     {
-        IsActive = false;
+        RefreshTokenHash = tokenHash;
+        RefreshTokenExpiry = expiry;
     }
+
+    public void ClearRefreshToken()
+    {
+        RefreshTokenHash = null;
+        RefreshTokenExpiry = null;
+    }
+
+    public bool HasValidRefreshToken(string tokenHash) =>
+        RefreshTokenHash == tokenHash
+        && RefreshTokenExpiry.HasValue
+        && RefreshTokenExpiry.Value > DateTime.UtcNow;
 
     private static string Required(string value, string fieldName, int maxLength)
     {

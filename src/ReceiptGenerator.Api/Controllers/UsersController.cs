@@ -8,7 +8,7 @@ using ReceiptGenerator.Domain.Entities;
 namespace ReceiptGenerator.Api.Controllers;
 
 [ApiController]
-[Authorize(Roles = UserRole.SuperAdmin)]
+[Authorize(Roles = $"{UserRole.SystemAdmin},{UserRole.CoopAdmin}")]
 [Route("api/users")]
 public sealed class UsersController : ControllerBase
 {
@@ -25,9 +25,21 @@ public sealed class UsersController : ControllerBase
         return Ok(await _userService.GetAllAsync(cancellationToken));
     }
 
+    [HttpGet("drivers")]
+    public async Task<ActionResult<IReadOnlyList<UserResponse>>> GetDrivers(CancellationToken cancellationToken)
+    {
+        return Ok(await _userService.GetActiveDriversAsync(cancellationToken));
+    }
+
     [HttpPost]
     public async Task<ActionResult<UserResponse>> Create(CreateUserRequest request, CancellationToken cancellationToken)
     {
+        // CoopAdmin só pode criar contas de Driver
+        if (User.IsInRole(UserRole.CoopAdmin) && request.Role != UserRole.Driver)
+        {
+            return Forbid();
+        }
+
         var result = await _userService.CreateAsync(request, cancellationToken);
 
         return result.Status switch
