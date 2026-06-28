@@ -72,9 +72,19 @@ Por padrao, o ambiente `Development` aponta para PostgreSQL local.
   },
   "JwtSettings": {
     "Secret": "change-this-development-secret-with-at-least-32-characters"
+  },
+  "Cooperative": {
+    "Name": "COOPERTÁXI JUNDIAÍ",
+    "LegalName": "Cooperativa de Trabalho dos Taxistas de Jundiaí - SP",
+    "TaxId": "44.327.517/0001-65",
+    "Phone": "(11) 97474-9974",
+    "Email": "faleconosco@coopertaxijundiaisp.com.br",
+    "City": "Jundiaí"
   }
 }
 ```
+
+Os dados da cooperativa aparecem no cabecalho e rodape do PDF gerado. Em producao, podem ser sobrescritos via variaveis de ambiente no Render: `Cooperative__Name`, `Cooperative__TaxId`, `Cooperative__Phone`, etc.
 
 Para apontar para Supabase sem gravar senha no Git, use User Secrets:
 
@@ -94,6 +104,20 @@ dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Po
 dotnet restore ReceiptGenerator.sln
 dotnet build ReceiptGenerator.sln
 dotnet run --project src/ReceiptGenerator.Api/ReceiptGenerator.Api.csproj
+```
+
+## Testes
+
+```bash
+dotnet test tests/ReceiptGenerator.Tests/ReceiptGenerator.Tests.csproj
+```
+
+Para executar com coleta de cobertura (threshold minimo de 75%):
+
+```bash
+dotnet test tests/ReceiptGenerator.Tests/ReceiptGenerator.Tests.csproj \
+  --settings tests/ReceiptGenerator.Tests/coverlet.runsettings \
+  --collect:"XPlat Code Coverage"
 ```
 
 Durante desenvolvimento, a especificacao OpenAPI fica disponivel em `/openapi/v1.json`.

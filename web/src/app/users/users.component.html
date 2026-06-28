@@ -19,7 +19,7 @@
                 <div class="form-group">
                     <label for="role">Perfil</label>
                     <select id="role" [(ngModel)]="currentUser.role" name="role">
-                        <option *ngFor="let role of roles" [ngValue]="role">
+                        <option *ngFor="let role of roles; trackBy: trackByRole" [ngValue]="role">
                             {{ role === 'SuperAdmin' ? 'Super administrador' : 'Operador' }}
                         </option>
                     </select>
@@ -36,14 +36,14 @@
         <p *ngIf="users.length === 0">Nenhum usuário cadastrado.</p>
 
         <div class="user-cards" *ngIf="users.length > 0">
-            <article class="user-card" *ngFor="let user of users">
+            <article class="user-card" *ngFor="let user of users; trackBy: trackByUserId">
                 <div>
                     <strong>{{ user.username }}</strong>
                     <span [class.inactive]="!user.isActive">{{ user.isActive ? 'Ativo' : 'Inativo' }}</span>
                 </div>
                 <p>{{ user.role === 'SuperAdmin' ? 'Super administrador' : 'Operador' }}</p>
-                <button class="btn btn-success" *ngIf="!user.isActive" (click)="activate(user)">Ativar</button>
-                <button class="btn btn-danger" *ngIf="user.isActive" (click)="deactivate(user)">Desativar</button>
+                <button type="button" class="btn btn-success" *ngIf="!user.isActive" (click)="activate(user)">Ativar</button>
+                <button type="button" class="btn btn-danger" *ngIf="user.isActive" (click)="deactivate(user)">Desativar</button>
             </article>
         </div>
 
@@ -57,15 +57,15 @@
                 </tr>
             </thead>
             <tbody>
-                <tr *ngFor="let user of users">
+                <tr *ngFor="let user of users; trackBy: trackByUserId">
                     <td>{{ user.username }}</td>
                     <td>{{ user.role === 'SuperAdmin' ? 'Super administrador' : 'Operador' }}</td>
                     <td>{{ user.isActive ? 'Ativo' : 'Inativo' }}</td>
                     <td>
-                        <button class="btn btn-success btn-sm" *ngIf="!user.isActive" (click)="activate(user)">
+                        <button type="button" class="btn btn-success btn-sm" *ngIf="!user.isActive" (click)="activate(user)">
                             Ativar
                         </button>
-                        <button class="btn btn-danger btn-sm" *ngIf="user.isActive" (click)="deactivate(user)">
+                        <button type="button" class="btn btn-danger btn-sm" *ngIf="user.isActive" (click)="deactivate(user)">
                             Desativar
                         </button>
                     </td>

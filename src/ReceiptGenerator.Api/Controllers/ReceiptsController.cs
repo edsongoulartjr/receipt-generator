@@ -19,9 +19,18 @@ public sealed class ReceiptsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<ReceiptResponse>>> Get(CancellationToken cancellationToken)
+    public async Task<ActionResult<PagedResponse<ReceiptResponse>>> Get(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        CancellationToken cancellationToken = default)
     {
-        return Ok(await _receiptService.GetByUserIdAsync(UserId, cancellationToken));
+        return Ok(await _receiptService.GetByUserIdAsync(UserId, page, pageSize, cancellationToken));
+    }
+
+    [HttpGet("monthly-summary")]
+    public async Task<ActionResult<IReadOnlyList<MonthlyReportResponse>>> GetMonthlySummary(CancellationToken cancellationToken)
+    {
+        return Ok(await _receiptService.GetMonthlySummaryAsync(UserId, cancellationToken));
     }
 
     [HttpGet("{id:int}")]
@@ -60,7 +69,7 @@ public sealed class ReceiptsController : ControllerBase
         var pdf = await _receiptService.GeneratePdfAsync(id, UserId, cancellationToken);
         return pdf is null
             ? NotFound()
-            : File(pdf, "application/pdf", $"recibo-{id:000000}.pdf");
+            : File(pdf, "application/pdf", $"recibo-{id}.pdf");
     }
 
     private int UserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)

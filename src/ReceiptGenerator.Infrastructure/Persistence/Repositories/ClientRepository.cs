@@ -19,7 +19,8 @@ public sealed class ClientRepository : IClientRepository
             .AsNoTracking()
             .Where(x => x.UserId == userId)
             .OrderBy(x => x.Name)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
     }
 
     public Task<Client?> GetByIdAndUserIdAsync(int id, int userId, CancellationToken cancellationToken = default)
@@ -30,17 +31,17 @@ public sealed class ClientRepository : IClientRepository
     public async Task AddAsync(Client client, CancellationToken cancellationToken = default)
     {
         _context.Clients.Add(client);
-        await _context.SaveChangesAsync(cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task UpdateAsync(Client client, CancellationToken cancellationToken = default)
     {
-        await _context.SaveChangesAsync(cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task DeleteAsync(Client client, CancellationToken cancellationToken = default)
     {
         _context.Clients.Remove(client);
-        await _context.SaveChangesAsync(cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 }

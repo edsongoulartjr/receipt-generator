@@ -4,6 +4,10 @@ import { Observable, BehaviorSubject, catchError, delay, of, switchMap, tap, thr
 import { Router } from '@angular/router';
 import { API_BASE_URL } from './api.config';
 
+interface LoginResponse {
+  token: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -18,7 +22,7 @@ export class AuthService {
 
   constructor(private http: HttpClient, private router: Router) { }
 
-  login(credentials: { username: string; password: string }): Observable<any> {
+  login(credentials: { username: string; password: string }): Observable<LoginResponse> {
     return this.sendLogin(credentials).pipe(
       catchError((error: HttpErrorResponse) => {
         if (error.status !== 0) {
@@ -64,9 +68,9 @@ export class AuthService {
     return this.getRoleFromToken() === 'SuperAdmin';
   }
 
-  private sendLogin(credentials: { username: string; password: string }): Observable<any> {
-    return this.http.post(`${this.apiUrl}/login`, credentials).pipe(
-      tap((response: any) => {
+  private sendLogin(credentials: { username: string; password: string }): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>(`${this.apiUrl}/login`, credentials).pipe(
+      tap((response) => {
         if (response?.token) {
           this.setToken(response.token);
           this.isAuthenticatedSubject.next(true);

@@ -9,7 +9,8 @@
     <div class="navbar-links">
         <a routerLink="/clients" routerLinkActive="active" class="nav-link">Clientes</a>
         <a routerLink="/receipts" routerLinkActive="active" class="nav-link">Recibos</a>
+        <a routerLink="/report" routerLinkActive="active" class="nav-link">Relatório</a>
         <a routerLink="/users" routerLinkActive="active" class="nav-link" *ngIf="authService.isSuperAdmin()">Usuários</a>
-        <button (click)="logout()" class="nav-link logout-button">Sair</button>
+        <button type="button" (click)="logout()" class="nav-link logout-button">Sair</button>
     </div>
 </nav>

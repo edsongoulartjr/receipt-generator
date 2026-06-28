@@ -1,9 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, DestroyRef, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ReceiptService, Receipt } from '../receipt.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ReceiptService, Receipt, PagedResponse } from '../receipt.service';
 import { ClientService, Client } from '../client.service';
 import { firstValueFrom } from 'rxjs';
+import { formatCpfCnpj } from '../utils/tax-id.utils';
 
 @Component({
   selector: 'app-receipts',
@@ -13,6 +15,13 @@ import { firstValueFrom } from 'rxjs';
   styleUrl: './receipts.component.css'
 })
 export class ReceiptsComponent implements OnInit {
+  private static readonly currencyFormatter = new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  });
+
+  private readonly destroyRef = inject(DestroyRef);
+
   receipts: Receipt[] = [];
   clients: Client[] = [];
   currentReceipt: Receipt = this.emptyReceipt();
@@ -20,6 +29,22 @@ export class ReceiptsComponent implements OnInit {
   amountDisplay = '';
   sharingReceiptId: number | null = null;
   shareFeedback = '';
+  isSubmitting = false;
+
+  clientNameInput = '';
+  resolvedClientId = 0;
+  showNewClientPrompt = false;
+  showClientDetails = false;
+  newClientAddress = '';
+  newClientTaxId = '';
+
+  showExtras = false;
+  lastCreatedReceipt: Receipt | null = null;
+
+  currentPage = 1;
+  readonly pageSize = 20;
+  totalPages = 0;
+  totalCount = 0;
 
   constructor(
     private receiptService: ReceiptService,
@@ -29,60 +54,149 @@ export class ReceiptsComponent implements OnInit {
   ngOnInit(): void {
     this.loadClients();
     this.loadReceipts();
+    const savedDriver = localStorage.getItem('driverName');
+    if (savedDriver) {
+      this.currentReceipt.driverName = savedDriver;
+    }
   }
 
   loadClients(): void {
-    this.clientService.getClients().subscribe({
-      next: (data) => {
-        this.clients = data;
-      },
-      error: (error) => {
-        console.error('Erro ao buscar clientes', error);
-      }
-    });
+    this.clientService.getClients()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (data) => { this.clients = data; },
+        error: (err) => { console.error('Erro ao buscar clientes', err); }
+      });
   }
 
   loadReceipts(): void {
-    this.receiptService.getReceipts().subscribe({
-      next: (data) => {
-        this.receipts = data;
-      },
-      error: (error) => {
-        console.error('Erro ao buscar recibos', error);
-      }
-    });
+    this.receiptService.getReceipts(this.currentPage, this.pageSize)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (data: PagedResponse<Receipt>) => {
+          this.receipts = data.items;
+          this.totalPages = data.totalPages;
+          this.totalCount = data.totalCount;
+        },
+        error: (err) => { console.error('Erro ao buscar recibos', err); }
+      });
   }
 
-  saveReceipt(): void {
-    if (this.currentReceipt.amount <= 0) {
+  goToPage(page: number): void {
+    if (page < 1 || page > this.totalPages) return;
+    this.currentPage = page;
+    this.loadReceipts();
+  }
+
+  nextPage(): void { this.goToPage(this.currentPage + 1); }
+  prevPage(): void { this.goToPage(this.currentPage - 1); }
+
+  onClientNameChange(name: string): void {
+    this.clientNameInput = name;
+    const trimmed = name.trim().toLowerCase();
+
+    if (!trimmed) {
+      this.resolvedClientId = 0;
+      this.showNewClientPrompt = false;
+      this.showClientDetails = false;
       return;
     }
 
-    const payload = this.toApiPayload(this.currentReceipt);
+    const match = this.clients.find(c => c.name.toLowerCase() === trimmed);
+    if (match) {
+      this.resolvedClientId = match.id!;
+      this.showNewClientPrompt = false;
+      this.showClientDetails = false;
+    } else {
+      this.resolvedClientId = 0;
+      this.showNewClientPrompt = true;
+    }
+  }
+
+  acceptWithDetails(): void {
+    this.showClientDetails = true;
+  }
+
+  onNewClientTaxIdChange(value: string): void {
+    this.newClientTaxId = formatCpfCnpj(value);
+  }
+
+  acceptNameOnly(): void {
+    this.showClientDetails = false;
+    this.showNewClientPrompt = false;
+  }
+
+  async saveReceipt(): Promise<void> {
+    if (this.isSubmitting || this.currentReceipt.amount <= 0) {
+      return;
+    }
+
+    this.isSubmitting = true;
+    let clientId = this.resolvedClientId;
+
+    if (clientId === 0) {
+      const name = this.clientNameInput.trim();
+      if (!name) {
+        this.isSubmitting = false;
+        return;
+      }
+
+      try {
+        const created = await firstValueFrom(
+          this.clientService.addClient({
+            name,
+            address: this.newClientAddress.trim(),
+            taxId: this.newClientTaxId.trim()
+          })
+        );
+        clientId = created.id!;
+        this.clients.push(created);
+      } catch (err) {
+        console.error('Erro ao criar cliente', err);
+        this.isSubmitting = false;
+        return;
+      }
+    }
+
+    const payload = this.toApiPayload({ ...this.currentReceipt, clientId });
 
     if (this.editingReceipt) {
-      this.receiptService.updateReceipt(this.currentReceipt.id!, payload).subscribe({
-        next: () => {
-          this.loadReceipts();
-          this.cancelEdit();
-        },
-        error: (error) => {
-          console.error('Erro ao atualizar recibo', error);
-        }
-      });
+      this.receiptService.updateReceipt(this.currentReceipt.id!, payload)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: () => {
+            this.isSubmitting = false;
+            this.loadReceipts();
+            this.cancelEdit();
+          },
+          error: (err) => {
+            this.isSubmitting = false;
+            console.error('Erro ao atualizar recibo', err);
+          }
+        });
       return;
     }
 
-    this.receiptService.addReceipt(payload).subscribe({
-      next: () => {
-        this.loadReceipts();
-        this.currentReceipt = this.emptyReceipt();
-        this.amountDisplay = '';
-      },
-      error: (error) => {
-        console.error('Erro ao criar recibo', error);
-      }
-    });
+    const driverName = this.currentReceipt.driverName?.trim();
+    if (driverName) {
+      localStorage.setItem('driverName', driverName);
+    }
+
+    this.receiptService.addReceipt(payload)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (created) => {
+          this.isSubmitting = false;
+          this.lastCreatedReceipt = created;
+          this.currentPage = 1;
+          this.loadReceipts();
+          this.resetForm();
+        },
+        error: (err) => {
+          this.isSubmitting = false;
+          console.error('Erro ao criar recibo', err);
+        }
+      });
   }
 
   editReceipt(receipt: Receipt): void {
@@ -91,6 +205,11 @@ export class ReceiptsComponent implements OnInit {
       startTime: this.toTimeInput(receipt.startTime),
       endTime: this.toTimeInput(receipt.endTime)
     };
+    this.clientNameInput = receipt.client?.name ?? '';
+    this.resolvedClientId = receipt.clientId;
+    this.showNewClientPrompt = false;
+    this.showClientDetails = false;
+    this.showExtras = !!(receipt.startTime || receipt.endTime || receipt.driverName);
     this.amountDisplay = this.formatCurrency(receipt.amount);
     this.editingReceipt = true;
   }
@@ -99,17 +218,28 @@ export class ReceiptsComponent implements OnInit {
     this.currentReceipt = this.emptyReceipt();
     this.amountDisplay = '';
     this.editingReceipt = false;
+    this.showExtras = false;
+    this.resetClientState();
+  }
+
+  shareLastReceipt(): void {
+    if (this.lastCreatedReceipt) {
+      this.sharePdf(this.lastCreatedReceipt);
+    }
+    this.lastCreatedReceipt = null;
+  }
+
+  dismissSuccess(): void {
+    this.lastCreatedReceipt = null;
   }
 
   deleteReceipt(id: number): void {
-    this.receiptService.deleteReceipt(id).subscribe({
-      next: () => {
-        this.loadReceipts();
-      },
-      error: (error) => {
-        console.error('Erro ao excluir recibo', error);
-      }
-    });
+    this.receiptService.deleteReceipt(id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => { this.currentPage = 1; this.loadReceipts(); },
+        error: (err) => { console.error('Erro ao excluir recibo', err); }
+      });
   }
 
   onAmountInput(event: Event): void {
@@ -132,7 +262,7 @@ export class ReceiptsComponent implements OnInit {
 
     try {
       const blob = await firstValueFrom(this.receiptService.generateReceiptPdf(receipt.id));
-      const receiptNumber = receipt.id.toString().padStart(6, '0');
+      const receiptNumber = (receipt.number ?? receipt.id ?? 0).toString().padStart(6, '0');
       const fileName = `recibo-${receiptNumber}.pdf`;
       const file = new File([blob], fileName, { type: 'application/pdf' });
 
@@ -159,22 +289,58 @@ export class ReceiptsComponent implements OnInit {
     }
   }
 
+  shareWhatsApp(receipt: Receipt): void {
+    const number = (receipt.number ?? receipt.id ?? 0).toString().padStart(6, '0');
+    const amount = ReceiptsComponent.currencyFormatter.format(receipt.amount);
+    const date = receipt.date ? new Date(receipt.date).toLocaleDateString('pt-BR') : '';
+    const client = receipt.client?.name ?? 'cliente';
+
+    const lines = [
+      `*Recibo Nº ${number}*`,
+      `Coopertáxi Jundiaí`,
+      ``,
+      `*Cliente:* ${client}`,
+      `*Valor:* ${amount}`,
+      `*Data:* ${date}`,
+      `*Serviço:* ${receipt.description}`,
+      ``,
+      `_Documento emitido eletronicamente._`
+    ];
+
+    if (receipt.driverName?.trim()) {
+      lines.splice(7, 0, `*Motorista:* ${receipt.driverName.trim()}`);
+    }
+
+    const url = `https://wa.me/?text=${encodeURIComponent(lines.join('\n'))}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+
   toTimeInput(value?: string): string {
-    if (!value) {
-      return '';
-    }
+    if (!value) return '';
+    return value.includes('T') ? value.substring(11, 16) : value.substring(0, 5);
+  }
 
-    if (value.includes('T')) {
-      return value.substring(11, 16);
-    }
+  private resetForm(): void {
+    this.currentReceipt = this.emptyReceipt();
+    this.currentReceipt.driverName = localStorage.getItem('driverName') ?? '';
+    this.amountDisplay = '';
+    this.showExtras = false;
+    this.resetClientState();
+  }
 
-    return value.substring(0, 5);
+  private resetClientState(): void {
+    this.clientNameInput = '';
+    this.resolvedClientId = 0;
+    this.showNewClientPrompt = false;
+    this.showClientDetails = false;
+    this.newClientAddress = '';
+    this.newClientTaxId = '';
   }
 
   private emptyReceipt(): Receipt {
     return {
       clientId: 0,
-      description: '',
+      description: 'Serviço de Táxi',
       amount: 0,
       startTime: '',
       endTime: '',
@@ -197,22 +363,21 @@ export class ReceiptsComponent implements OnInit {
   }
 
   private toDateTime(value?: string): string | undefined {
-    if (!value) {
-      return undefined;
-    }
-
-    if (value.includes('T')) {
-      return value;
-    }
-
+    if (!value) return undefined;
+    if (value.includes('T')) return value;
     return `1970-01-01T${value}:00Z`;
   }
 
+  trackByReceiptId(_index: number, receipt: Receipt): number | undefined {
+    return receipt.id;
+  }
+
+  trackByClientId(_index: number, client: Client): number | undefined {
+    return client.id;
+  }
+
   private formatCurrency(value: number): string {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value);
+    return ReceiptsComponent.currencyFormatter.format(value);
   }
 
   private downloadPdf(blob: Blob, fileName: string): void {

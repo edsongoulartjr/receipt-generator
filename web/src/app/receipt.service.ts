@@ -1,13 +1,30 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { HttpParams } from '@angular/common/http';
 import { API_BASE_URL } from './api.config';
 import { Client } from './client.service';
 
+export interface MonthlyReport {
+  year: number;
+  month: number;
+  count: number;
+  totalAmount: number;
+}
+
+export interface PagedResponse<T> {
+  items: T[];
+  page: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+}
+
 export interface Receipt {
   id?: number;
+  number?: number;
   clientId: number;
-  client?: Client; // Optional, will be populated by backend
+  client?: Client;
   description: string;
   amount: number;
   date?: string;
@@ -25,8 +42,9 @@ export class ReceiptService {
 
   constructor(private http: HttpClient) { }
 
-  getReceipts(): Observable<Receipt[]> {
-    return this.http.get<Receipt[]>(this.apiUrl);
+  getReceipts(page: number = 1, pageSize: number = 20): Observable<PagedResponse<Receipt>> {
+    const params = new HttpParams().set('page', page).set('pageSize', pageSize);
+    return this.http.get<PagedResponse<Receipt>>(this.apiUrl, { params });
   }
 
   getReceipt(id: number): Observable<Receipt> {
@@ -37,15 +55,19 @@ export class ReceiptService {
     return this.http.post<Receipt>(this.apiUrl, receipt);
   }
 
-  updateReceipt(id: number, receipt: Receipt): Observable<any> {
-    return this.http.put(`${this.apiUrl}/${id}`, receipt);
+  updateReceipt(id: number, receipt: Receipt): Observable<void> {
+    return this.http.put<void>(`${this.apiUrl}/${id}`, receipt);
   }
 
-  deleteReceipt(id: number): Observable<any> {
-    return this.http.delete(`${this.apiUrl}/${id}`);
+  deleteReceipt(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 
   generateReceiptPdf(id: number): Observable<Blob> {
     return this.http.get(`${this.apiUrl}/${id}/pdf`, { responseType: 'blob' });
+  }
+
+  getMonthlySummary(): Observable<MonthlyReport[]> {
+    return this.http.get<MonthlyReport[]>(`${this.apiUrl}/monthly-summary`);
   }
 }

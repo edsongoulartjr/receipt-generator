@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat Code Coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <Threshold>75</Threshold>
+          <ThresholdType>line</ThresholdType>
+          <ThresholdStat>Minimum</ThresholdStat>
+          <Exclude>[ReceiptGenerator.Tests]*,[ReceiptGenerator.Api]*</Exclude>
+          <IncludeTestAssembly>false</IncludeTestAssembly>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

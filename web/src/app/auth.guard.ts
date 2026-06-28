@@ -25,5 +25,5 @@ export const superAdminGuard: CanActivateFn = () => {
     return true;
   }
 
-  return router.createUrlTree(['/clients']);
+  return router.createUrlTree(['/receipts']);
 };

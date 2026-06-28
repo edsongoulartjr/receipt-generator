@@ -1,4 +1,5 @@
 using System.Globalization;
+using Microsoft.Extensions.Options;
 using QuestPDF.Drawing;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
@@ -12,6 +13,8 @@ public sealed class QuestReceiptPdfGenerator : IReceiptPdfGenerator
 {
     private static readonly CultureInfo Brazil = new("pt-BR");
     private static readonly byte[] CooperativeLogo = LoadEmbeddedLogo();
+
+    private readonly CooperativeSettings _cooperative;
 
     static QuestReceiptPdfGenerator()
     {
@@ -39,6 +42,11 @@ public sealed class QuestReceiptPdfGenerator : IReceiptPdfGenerator
         }
     }
 
+    public QuestReceiptPdfGenerator(IOptions<CooperativeSettings> cooperativeOptions)
+    {
+        _cooperative = cooperativeOptions.Value;
+    }
+
     public byte[] Generate(Receipt receipt)
     {
         var issuedAt = receipt.Date.ToLocalTime();
@@ -52,81 +60,132 @@ public sealed class QuestReceiptPdfGenerator : IReceiptPdfGenerator
                 page.Margin(36);
                 page.DefaultTextStyle(x => x.FontSize(11).FontFamily("Lato"));
 
-                page.Content().Border(1).BorderColor(Colors.Grey.Darken2).Padding(22).Column(column =>
+                page.Content().Border(1).BorderColor("#b8d7d5").Padding(22).Column(column =>
                 {
-                    column.Spacing(16);
+                    column.Spacing(14);
 
+                    // ── CABEÇALHO ────────────────────────────────────────────
                     column.Item().Row(row =>
                     {
-                        row.ConstantItem(76).Height(76).Image(CooperativeLogo).FitArea();
+                        row.ConstantItem(72).Height(72).Image(CooperativeLogo).FitArea();
 
-                        row.RelativeItem().PaddingLeft(14).AlignMiddle().Column(header =>
+                        row.RelativeItem().PaddingLeft(14).AlignMiddle().Column(identity =>
                         {
-                            header.Item().Text("COOPERTÁXI JUNDIAÍ").Bold().FontSize(17).FontColor("#006f72");
-                            header.Item().PaddingTop(3).Text("RECIBO").Bold().FontSize(27).FontColor(Colors.Grey.Darken4);
-                            header.Item().Text($"Nº {receipt.Id:000000}")
-                                .FontSize(10)
-                                .FontColor(Colors.Grey.Darken1);
+                            identity.Item().Text(_cooperative.Name)
+                                .Bold().FontSize(15).FontColor("#006f72");
+                            identity.Item().PaddingTop(3).Text(_cooperative.LegalName)
+                                .FontSize(8).FontColor(Colors.Grey.Darken2);
+                            identity.Item().PaddingTop(2)
+                                .Text($"CNPJ {_cooperative.TaxId}  ·  {_cooperative.Phone}")
+                                .FontSize(8).FontColor(Colors.Grey.Darken1);
+                            identity.Item().PaddingTop(1)
+                                .Text(_cooperative.Email)
+                                .FontSize(8).FontColor("#006f72");
                         });
 
-                        row.ConstantItem(170).Border(1).BorderColor("#008f8c").Padding(10).AlignMiddle().Column(value =>
+                        row.ConstantItem(150).AlignBottom().Column(docTitle =>
                         {
-                            value.Item().Text("VALOR").FontSize(9).FontColor(Colors.Grey.Darken1);
-                            value.Item().Text(receipt.Amount.ToString("C", Brazil)).Bold().FontSize(20).FontColor("#006f72");
+                            docTitle.Item().AlignRight().Text("RECIBO")
+                                .Bold().FontSize(26).FontColor(Colors.Grey.Darken4);
+                            docTitle.Item().AlignRight()
+                                .Text($"Nº {receipt.Number:000000} / {issuedAt:yyyy}")
+                                .Bold().FontSize(11).FontColor("#006f72");
                         });
                     });
 
+                    // ── LINHA AMARELA ─────────────────────────────────────────
                     column.Item().LineHorizontal(2).LineColor("#f2d500");
 
+                    // ── BANDA DE VALOR ────────────────────────────────────────
+                    column.Item().Background("#006f72").Padding(12).Column(valCol =>
+                    {
+                        valCol.Item().Text("VALOR RECEBIDO")
+                            .FontSize(8).FontColor("#a8d8d6");
+                        valCol.Item().PaddingTop(2)
+                            .Text(receipt.Amount.ToString("C", Brazil))
+                            .Bold().FontSize(24).FontColor(Colors.White);
+                    });
+
+                    // ── DECLARAÇÃO ────────────────────────────────────────────
                     column.Item().Text(text =>
                     {
                         text.Span("Recebemos de ").SemiBold();
                         text.Span(receipt.Client?.Name ?? "cliente não informado").Bold();
-                        text.Span(", inscrito(a) no CPF/CNPJ sob nº ");
-                        text.Span(receipt.Client?.TaxId ?? "não informado").Bold();
+
+                        if (!string.IsNullOrWhiteSpace(receipt.Client?.TaxId))
+                        {
+                            text.Span(", inscrito(a) no CPF/CNPJ sob nº ");
+                            text.Span(receipt.Client.TaxId).Bold();
+                        }
+
                         text.Span(", o valor de ");
                         text.Span(receipt.Amount.ToString("C", Brazil)).Bold();
-                        text.Span(" (");
-                        text.Span(amountText).Bold();
-                        text.Span(").");
+                        text.Span($" ({amountText}).");
                     });
 
+                    // ── DETALHES DO SERVIÇO ───────────────────────────────────
                     column.Item().Background("#f4f8f8").Border(1).BorderColor("#b8d7d5").Padding(12).Column(details =>
                     {
-                        details.Spacing(5);
-                        details.Item().Text("REFERENTE A").SemiBold().FontSize(9).FontColor("#006f72");
-                        details.Item().Text(receipt.Description).Bold().FontSize(12);
-                        AddOptional(details, "Endereço do cliente", receipt.Client?.Address);
-                        AddOptional(details, "Data(s) do serviço", receipt.ServiceDates);
+                        details.Spacing(6);
+                        details.Item().Text("REFERENTE A")
+                            .SemiBold().FontSize(9).FontColor("#006f72");
+                        details.Item().Text(receipt.Description)
+                            .Bold().FontSize(12);
 
+                        var hasDates = !string.IsNullOrWhiteSpace(receipt.ServiceDates);
                         var serviceTime = FormatServiceTime(receipt);
-                        AddOptional(details, "Horário", serviceTime);
-                    });
-
-                    column.Item().AlignRight().Text($"Jundiaí, {issuedAt:dd} de {issuedAt.ToString("MMMM", Brazil)} de {issuedAt:yyyy}.")
-                        .FontSize(11);
-
-                    column.Item().PaddingTop(18).Row(row =>
-                    {
-                        row.ConstantItem(80);
-                        row.RelativeItem().Column(signature =>
+                        if (hasDates || serviceTime is not null)
                         {
-                            signature.Item().LineHorizontal(1).LineColor(Colors.Grey.Darken2);
-                            signature.Item().PaddingTop(4).AlignCenter()
-                                .Text(receipt.DriverName ?? "Taxista / responsável").FontSize(10);
-                        });
-                        row.ConstantItem(80);
+                            details.Item().Row(dateRow =>
+                            {
+                                if (hasDates)
+                                    dateRow.RelativeItem()
+                                        .Text($"Data(s) do serviço: {receipt.ServiceDates}")
+                                        .FontSize(10);
+                                if (serviceTime is not null)
+                                    dateRow.RelativeItem()
+                                        .Text($"Horário: {serviceTime}")
+                                        .FontSize(10);
+                            });
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(receipt.Client?.Address))
+                            details.Item().Text($"Endereço: {receipt.Client.Address}").FontSize(10);
                     });
 
+                    // ── LOCAL E DATA ──────────────────────────────────────────
+                    column.Item().AlignRight()
+                        .Text($"{_cooperative.City}, {issuedAt:dd} de {issuedAt.ToString("MMMM", Brazil)} de {issuedAt:yyyy}.")
+                        .FontSize(10).Italic();
+
+                    // ── ASSINATURA ────────────────────────────────────────────
+                    column.Item().PaddingTop(14).Row(sigRow =>
+                    {
+                        sigRow.ConstantItem(60);
+                        sigRow.RelativeItem().Column(sig =>
+                        {
+                            sig.Item().LineHorizontal(1).LineColor(Colors.Grey.Darken2);
+                            sig.Item().PaddingTop(5).AlignCenter()
+                                .Text(receipt.DriverName ?? receipt.IssuerName ?? "Taxista / responsável")
+                                .SemiBold().FontSize(10);
+                            if (!string.IsNullOrWhiteSpace(receipt.IssuerPhone))
+                                sig.Item().AlignCenter()
+                                    .Text(receipt.IssuerPhone)
+                                    .FontSize(9).FontColor(Colors.Grey.Darken1);
+                            if (!string.IsNullOrWhiteSpace(receipt.IssuerEmail))
+                                sig.Item().AlignCenter()
+                                    .Text(receipt.IssuerEmail)
+                                    .FontSize(9).FontColor("#006f72");
+                        });
+                        sigRow.ConstantItem(60);
+                    });
+
+                    // ── RODAPÉ ────────────────────────────────────────────────
                     column.Item().PaddingTop(6).LineHorizontal(1).LineColor(Colors.Grey.Lighten1);
 
-                    column.Item().AlignCenter().Column(footer =>
-                    {
-                        footer.Spacing(2);
-                        footer.Item().Text("Cooperativa de Trabalho dos Taxistas de Jundiaí - SP").Bold().FontSize(10);
-                        footer.Item().Text("CNPJ 44.327.517/0001-65  |  (11) 97474-9974").FontSize(9);
-                        footer.Item().Text("faleconosco@coopertaxijundiaisp.com.br").FontSize(9).FontColor("#006f72");
-                    });
+                    column.Item().AlignCenter()
+                        .Text($"Documento emitido eletronicamente  ·  {issuedAt:dd/MM/yyyy HH:mm}")
+                        .FontSize(7).FontColor(Colors.Grey.Darken1).Italic();
                 });
             });
         });

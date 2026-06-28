@@ -35,14 +35,27 @@ public sealed class Client
     }
 
     private void Rename(string name) => Name = Required(name, nameof(name), 200);
-    private void ChangeAddress(string address) => Address = Required(address, nameof(address), 500);
-    private void ChangeTaxId(string taxId) => TaxId = Required(taxId, nameof(taxId), 50);
+    private void ChangeAddress(string address) => Address = Optional(address, nameof(address), 500);
+    private void ChangeTaxId(string taxId) => TaxId = Optional(taxId, nameof(taxId), 50);
 
     private static string Required(string value, string fieldName, int maxLength)
     {
         if (string.IsNullOrWhiteSpace(value))
         {
             throw new ArgumentException($"{fieldName} is required.", fieldName);
+        }
+
+        value = value.Trim();
+        return value.Length > maxLength
+            ? throw new ArgumentException($"{fieldName} must have at most {maxLength} characters.", fieldName)
+            : value;
+    }
+
+    private static string Optional(string value, string fieldName, int maxLength)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
         }
 
         value = value.Trim();

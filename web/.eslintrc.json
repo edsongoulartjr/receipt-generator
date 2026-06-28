@@ -1,0 +1,69 @@
+{
+  "root": true,
+  "ignorePatterns": ["dist/**", "node_modules/**"],
+  "overrides": [
+    {
+      "files": ["*.ts"],
+      "parser": "@typescript-eslint/parser",
+      "parserOptions": {
+        "project": ["tsconfig.json"],
+        "createDefaultProgram": true
+      },
+      "extends": [
+        "eslint:recommended",
+        "plugin:@typescript-eslint/recommended",
+        "plugin:@angular-eslint/recommended",
+        "plugin:@angular-eslint/template/process-inline-templates",
+        "plugin:rxjs/recommended"
+      ],
+      "rules": {
+        // ─── Angular ───────────────────────────────────────────────
+        "@angular-eslint/component-selector": [
+          "error",
+          { "type": "element", "prefix": "app", "style": "kebab-case" }
+        ],
+        "@angular-eslint/directive-selector": [
+          "error",
+          { "type": "attribute", "prefix": "app", "style": "camelCase" }
+        ],
+        "@angular-eslint/no-empty-lifecycle-method": "error",
+        "@angular-eslint/use-lifecycle-interface": "error",
+        "@angular-eslint/no-output-rename": "error",
+        "@angular-eslint/no-input-rename": "error",
+
+        // ─── TypeScript ────────────────────────────────────────────
+        "@typescript-eslint/no-explicit-any": "error",
+        "@typescript-eslint/no-non-null-assertion": "warn",
+        "@typescript-eslint/no-unused-vars": [
+          "error",
+          { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }
+        ],
+
+        // ─── RxJS overrides ────────────────────────────────────────
+        // takeUntilDestroyed gerencia o ciclo de vida sem armazenar Subscription
+        "rxjs/no-ignored-subscription": "off",
+        // TypeScript strict mode (useUnknownInCatchVariables) cobre isso nativamente
+        "rxjs/no-implicit-any-catch": "off"
+      }
+    },
+    {
+      "files": ["*.spec.ts"],
+      "rules": {
+        "@typescript-eslint/no-explicit-any": "off",
+        "@typescript-eslint/no-non-null-assertion": "off"
+      }
+    },
+    {
+      "files": ["*.html"],
+      "extends": ["plugin:@angular-eslint/template/recommended"],
+      "rules": {
+        // Obriga trackBy em todos os *ngFor
+        "@angular-eslint/template/use-track-by-function": "error",
+        // Obriga type="button|submit|reset" em todos os <button>
+        "@angular-eslint/template/button-has-type": "error",
+        // Avisa sobre uso de ! com async pipe (pode esconder erros)
+        "@angular-eslint/template/no-negated-async": "warn"
+      }
+    }
+  ]
+}

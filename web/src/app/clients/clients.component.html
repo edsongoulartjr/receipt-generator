@@ -29,15 +29,15 @@
         <h3>Clientes Cadastrados</h3>
         <p *ngIf="clients.length === 0">Nenhum cliente cadastrado ainda.</p>
         <ul>
-            <li *ngFor="let client of clients">
+            <li *ngFor="let client of clients; trackBy: trackByClientId">
                 <div class="client-info">
                     <strong>{{ client.name }}</strong>
                     <span>{{ client.taxId }}</span>
                     <small>{{ client.address }}</small>
                 </div>
                 <div class="client-actions">
-                    <button (click)="editClient(client)">Editar</button>
-                    <button (click)="deleteClient(client.id!)">Excluir</button>
+                    <button type="button" (click)="editClient(client)">Editar</button>
+                    <button type="button" (click)="deleteClient(client.id!)">Excluir</button>
                 </div>
             </li>
         </ul>

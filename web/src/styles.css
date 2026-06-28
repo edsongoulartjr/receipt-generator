@@ -206,6 +206,19 @@ button[type="submit"]:hover {
 
   .btn,
   button {
-    min-height: 46px;
+    min-height: 52px;
+  }
+
+  .btn-sm {
+    min-height: 48px;
+  }
+
+  /* Prevents iOS Safari from zooming on input focus */
+  .form-control,
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+    min-height: 52px;
   }
 }

@@ -21,7 +21,7 @@ public sealed class AuthService : IAuthService
 
     public async Task<AuthResponse?> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
     {
-        var user = await _users.GetByUsernameAsync(request.Username, cancellationToken);
+        var user = await _users.GetByUsernameAsync(request.Username, cancellationToken).ConfigureAwait(false);
         if (user is null || !user.IsActive || !_passwordHasher.Verify(request.Password, user.PasswordHash))
         {
             return null;

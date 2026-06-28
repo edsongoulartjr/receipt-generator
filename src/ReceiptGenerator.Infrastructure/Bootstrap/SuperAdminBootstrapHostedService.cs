@@ -46,7 +46,7 @@ public sealed class SuperAdminBootstrapHostedService : IHostedService
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
 
-        if (await dbContext.Users.AnyAsync(user => user.Role == UserRole.SuperAdmin, cancellationToken))
+        if (await dbContext.Users.AnyAsync(user => user.Role == UserRole.SuperAdmin, cancellationToken).ConfigureAwait(false))
         {
             _logger.LogInformation("SuperAdmin bootstrap skipped because a SuperAdmin user already exists.");
             return;
@@ -54,7 +54,7 @@ public sealed class SuperAdminBootstrapHostedService : IHostedService
 
         username = username.Trim();
         var existingUser = await dbContext.Users
-            .SingleOrDefaultAsync(user => user.Username == username, cancellationToken);
+            .SingleOrDefaultAsync(user => user.Username == username, cancellationToken).ConfigureAwait(false);
 
         if (existingUser is not null)
         {
@@ -69,7 +69,7 @@ public sealed class SuperAdminBootstrapHostedService : IHostedService
             _logger.LogInformation("Initial SuperAdmin user was created by bootstrap.");
         }
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;

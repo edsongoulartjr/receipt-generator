@@ -18,50 +18,50 @@ public sealed class ClientService : IClientService
 
     public async Task<IReadOnlyList<ClientResponse>> GetByUserIdAsync(int userId, CancellationToken cancellationToken = default)
     {
-        var clients = await _clients.GetByUserIdAsync(userId, cancellationToken);
+        var clients = await _clients.GetByUserIdAsync(userId, cancellationToken).ConfigureAwait(false);
         return clients.Select(Map).ToList();
     }
 
     public async Task<ClientResponse?> GetByIdAsync(int id, int userId, CancellationToken cancellationToken = default)
     {
-        var client = await _clients.GetByIdAndUserIdAsync(id, userId, cancellationToken);
+        var client = await _clients.GetByIdAndUserIdAsync(id, userId, cancellationToken).ConfigureAwait(false);
         return client is null ? null : Map(client);
     }
 
     public async Task<ClientResponse?> CreateAsync(int userId, ClientRequest request, CancellationToken cancellationToken = default)
     {
-        if (await _users.GetByIdAsync(userId, cancellationToken) is null)
+        if (await _users.GetByIdAsync(userId, cancellationToken).ConfigureAwait(false) is null)
         {
             return null;
         }
 
         var client = new Client(request.Name, request.Address, request.TaxId, userId);
-        await _clients.AddAsync(client, cancellationToken);
+        await _clients.AddAsync(client, cancellationToken).ConfigureAwait(false);
         return Map(client);
     }
 
     public async Task<bool> UpdateAsync(int id, int userId, ClientRequest request, CancellationToken cancellationToken = default)
     {
-        var client = await _clients.GetByIdAndUserIdAsync(id, userId, cancellationToken);
+        var client = await _clients.GetByIdAndUserIdAsync(id, userId, cancellationToken).ConfigureAwait(false);
         if (client is null)
         {
             return false;
         }
 
         client.Update(request.Name, request.Address, request.TaxId);
-        await _clients.UpdateAsync(client, cancellationToken);
+        await _clients.UpdateAsync(client, cancellationToken).ConfigureAwait(false);
         return true;
     }
 
     public async Task<bool> DeleteAsync(int id, int userId, CancellationToken cancellationToken = default)
     {
-        var client = await _clients.GetByIdAndUserIdAsync(id, userId, cancellationToken);
+        var client = await _clients.GetByIdAndUserIdAsync(id, userId, cancellationToken).ConfigureAwait(false);
         if (client is null)
         {
             return false;
         }
 
-        await _clients.DeleteAsync(client, cancellationToken);
+        await _clients.DeleteAsync(client, cancellationToken).ConfigureAwait(false);
         return true;
     }
 

@@ -28,6 +28,7 @@ public sealed class Receipt
     }
 
     public int Id { get; private set; }
+    public int Number { get; private set; }
     public DateTime Date { get; private set; }
     public string Description { get; private set; }
     public decimal Amount { get; private set; }
@@ -42,6 +43,11 @@ public sealed class Receipt
     public Client? Client { get; private set; }
     public int UserId { get; private set; }
     public User? User { get; private set; }
+
+    public void SetNumber(int number)
+    {
+        Number = number > 0 ? number : throw new ArgumentOutOfRangeException(nameof(number));
+    }
 
     public void ChangeClient(int clientId)
     {
@@ -102,7 +108,7 @@ public sealed class Receipt
 
         value = value.Trim();
         return value.Length > maxLength
-            ? throw new ArgumentException($"Value must have at most {maxLength} characters.")
+            ? throw new ArgumentException($"Value must have at most {maxLength} characters.", nameof(value))
             : value;
     }
 }

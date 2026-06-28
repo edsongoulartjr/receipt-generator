@@ -14,8 +14,18 @@ public sealed record ReceiptRequest(
     [MaxLength(200)] string? IssuerEmail,
     [MaxLength(200)] string? DriverName);
 
+public sealed record MonthlyReportResponse(int Year, int Month, int Count, decimal TotalAmount);
+
+public sealed record PagedResponse<T>(
+    IReadOnlyList<T> Items,
+    int Page,
+    int PageSize,
+    int TotalCount,
+    int TotalPages);
+
 public sealed record ReceiptResponse(
     int Id,
+    int Number,
     DateTime Date,
     string Description,
     decimal Amount,

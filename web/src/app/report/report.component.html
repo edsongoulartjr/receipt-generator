@@ -1,0 +1,41 @@
+<div class="container">
+    <h2 class="text-center my-4">Relatório Mensal</h2>
+
+    <p class="text-center" *ngIf="loading">Carregando...</p>
+
+    <p class="error-msg" *ngIf="hasError">
+        Não foi possível carregar o relatório. Verifique sua conexão e tente novamente.
+    </p>
+
+    <div class="card" *ngIf="!loading && !hasError">
+        <div class="card-body">
+            <p *ngIf="summary.length === 0">Nenhum recibo emitido ainda.</p>
+
+            <div class="table-responsive" *ngIf="summary.length > 0">
+                <table class="table table-hover report-table">
+                    <thead>
+                        <tr>
+                            <th>Mês / Ano</th>
+                            <th class="text-center">Recibos</th>
+                            <th class="text-end">Total Recebido</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let row of summary; trackBy: trackByMonth">
+                            <td>{{ monthName(row.month) }} / {{ row.year }}</td>
+                            <td class="text-center">{{ row.count }}</td>
+                            <td class="text-end">{{ row.totalAmount | currency:'BRL':'symbol':'1.2-2' }}</td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr class="totals-row">
+                            <th>Total</th>
+                            <th class="text-center">{{ totalCount }}</th>
+                            <th class="text-end">{{ totalAmount | currency:'BRL':'symbol':'1.2-2' }}</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

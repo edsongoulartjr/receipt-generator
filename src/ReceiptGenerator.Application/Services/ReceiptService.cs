@@ -19,24 +19,34 @@ public sealed class ReceiptService : IReceiptService
         _pdfGenerator = pdfGenerator;
     }
 
-    public async Task<IReadOnlyList<ReceiptResponse>> GetByUserIdAsync(int userId, CancellationToken cancellationToken = default)
+    public async Task<PagedResponse<ReceiptResponse>> GetByUserIdAsync(
+        int userId, int page, int pageSize, CancellationToken cancellationToken = default)
     {
-        var receipts = await _receipts.GetByUserIdAsync(userId, cancellationToken);
-        return receipts.Select(Map).ToList();
+        var (items, total) = await _receipts.GetByUserIdAsync(userId, page, pageSize, cancellationToken).ConfigureAwait(false);
+        var totalPages = total == 0 ? 1 : (int)Math.Ceiling((double)total / pageSize);
+        return new PagedResponse<ReceiptResponse>(items.Select(Map).ToList(), page, pageSize, total, totalPages);
+    }
+
+    public async Task<IReadOnlyList<MonthlyReportResponse>> GetMonthlySummaryAsync(int userId, CancellationToken cancellationToken = default)
+    {
+        var summary = await _receipts.GetMonthlySummaryAsync(userId, cancellationToken).ConfigureAwait(false);
+        return summary.Select(x => new MonthlyReportResponse(x.Year, x.Month, x.Count, x.TotalAmount)).ToList();
     }
 
     public async Task<ReceiptResponse?> GetByIdAsync(int id, int userId, CancellationToken cancellationToken = default)
     {
-        var receipt = await _receipts.GetByIdAndUserIdAsync(id, userId, cancellationToken);
+        var receipt = await _receipts.GetByIdAndUserIdAsync(id, userId, cancellationToken).ConfigureAwait(false);
         return receipt is null ? null : Map(receipt);
     }
 
     public async Task<ReceiptResponse?> CreateAsync(int userId, ReceiptRequest request, CancellationToken cancellationToken = default)
     {
-        if (await _clients.GetByIdAndUserIdAsync(request.ClientId, userId, cancellationToken) is null)
+        if (await _clients.GetByIdAndUserIdAsync(request.ClientId, userId, cancellationToken).ConfigureAwait(false) is null)
         {
             return null;
         }
+
+        var nextNumber = await _receipts.GetNextNumberAsync(userId, cancellationToken).ConfigureAwait(false);
 
         var receipt = new Receipt(
             request.ClientId,
@@ -51,15 +61,16 @@ public sealed class ReceiptService : IReceiptService
             request.IssuerEmail,
             request.DriverName);
 
-        await _receipts.AddAsync(receipt, cancellationToken);
-        receipt = await _receipts.GetByIdAndUserIdAsync(receipt.Id, userId, cancellationToken) ?? receipt;
+        receipt.SetNumber(nextNumber);
+        await _receipts.AddAsync(receipt, cancellationToken).ConfigureAwait(false);
+        receipt = await _receipts.GetByIdAndUserIdAsync(receipt.Id, userId, cancellationToken).ConfigureAwait(false) ?? receipt;
         return Map(receipt);
     }
 
     public async Task<bool> UpdateAsync(int id, int userId, ReceiptRequest request, CancellationToken cancellationToken = default)
     {
-        var receipt = await _receipts.GetByIdAndUserIdAsync(id, userId, cancellationToken);
-        if (receipt is null || await _clients.GetByIdAndUserIdAsync(request.ClientId, userId, cancellationToken) is null)
+        var receipt = await _receipts.GetByIdAndUserIdAsync(id, userId, cancellationToken).ConfigureAwait(false);
+        if (receipt is null || await _clients.GetByIdAndUserIdAsync(request.ClientId, userId, cancellationToken).ConfigureAwait(false) is null)
         {
             return false;
         }
@@ -76,25 +87,25 @@ public sealed class ReceiptService : IReceiptService
             request.IssuerEmail,
             request.DriverName);
 
-        await _receipts.UpdateAsync(receipt, cancellationToken);
+        await _receipts.UpdateAsync(receipt, cancellationToken).ConfigureAwait(false);
         return true;
     }
 
     public async Task<bool> DeleteAsync(int id, int userId, CancellationToken cancellationToken = default)
     {
-        var receipt = await _receipts.GetByIdAndUserIdAsync(id, userId, cancellationToken);
+        var receipt = await _receipts.GetByIdAndUserIdAsync(id, userId, cancellationToken).ConfigureAwait(false);
         if (receipt is null)
         {
             return false;
         }
 
-        await _receipts.DeleteAsync(receipt, cancellationToken);
+        await _receipts.DeleteAsync(receipt, cancellationToken).ConfigureAwait(false);
         return true;
     }
 
     public async Task<byte[]?> GeneratePdfAsync(int id, int userId, CancellationToken cancellationToken = default)
     {
-        var receipt = await _receipts.GetByIdAndUserIdAsync(id, userId, cancellationToken);
+        var receipt = await _receipts.GetByIdAndUserIdAsync(id, userId, cancellationToken).ConfigureAwait(false);
         return receipt is null ? null : _pdfGenerator.Generate(receipt);
     }
 
@@ -106,6 +117,7 @@ public sealed class ReceiptService : IReceiptService
 
         return new ReceiptResponse(
             receipt.Id,
+            receipt.Number,
             receipt.Date,
             receipt.Description,
             receipt.Amount,

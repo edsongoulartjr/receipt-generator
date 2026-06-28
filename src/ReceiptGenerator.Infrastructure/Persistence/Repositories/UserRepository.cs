@@ -18,7 +18,8 @@ public sealed class UserRepository : IUserRepository
         return await _context.Users
             .AsNoTracking()
             .OrderBy(x => x.Username)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
     }
 
     public Task<User?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
@@ -34,11 +35,11 @@ public sealed class UserRepository : IUserRepository
     public async Task AddAsync(User user, CancellationToken cancellationToken = default)
     {
         _context.Users.Add(user);
-        await _context.SaveChangesAsync(cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task UpdateAsync(User user, CancellationToken cancellationToken = default)
     {
-        await _context.SaveChangesAsync(cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 }
