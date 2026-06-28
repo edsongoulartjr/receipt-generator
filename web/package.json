@@ -15,7 +15,10 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "lint": "ng lint",
-    "lint:fix": "ng lint --fix"
+    "lint:fix": "ng lint --fix",
+    "cap:sync": "npx cap sync android",
+    "cap:open": "npx cap open android",
+    "build:android": "node scripts/build-android.js"
   },
   "private": true,
   "dependencies": {
@@ -27,6 +30,12 @@
     "@angular/platform-browser": "^17.3.0",
     "@angular/platform-browser-dynamic": "^17.3.0",
     "@angular/router": "^17.3.0",
+    "@angular/service-worker": "^17.3.12",
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/cli": "^8.4.1",
+    "@capacitor/core": "^8.4.1",
+    "@capacitor/filesystem": "^8.1.2",
+    "@capacitor/share": "^8.0.1",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.14.3"

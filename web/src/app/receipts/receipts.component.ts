@@ -6,6 +6,7 @@ import { ReceiptService, Receipt, PagedResponse } from '../receipt.service';
 import { ClientService, Client } from '../client.service';
 import { AuthService } from '../auth.service';
 import { UserService, User } from '../user.service';
+import { ShareService } from '../share.service';
 import { firstValueFrom } from 'rxjs';
 
 @Component({
@@ -53,7 +54,8 @@ export class ReceiptsComponent implements OnInit {
     private receiptService: ReceiptService,
     private clientService: ClientService,
     public authService: AuthService,
-    private userService: UserService
+    private userService: UserService,
+    private shareService: ShareService
   ) { }
 
   ngOnInit(): void {
@@ -270,24 +272,17 @@ export class ReceiptsComponent implements OnInit {
       const blob = await firstValueFrom(this.receiptService.generateReceiptPdf(receipt.id));
       const receiptNumber = (receipt.number ?? receipt.id ?? 0).toString().padStart(6, '0');
       const fileName = `recibo-${receiptNumber}.pdf`;
-      const file = new File([blob], fileName, { type: 'application/pdf' });
+      const amountFormatted = ReceiptsComponent.currencyFormatter.format(receipt.amount);
+      const title = `Recibo Nº ${receiptNumber}`;
+      const text = `Recibo Nº ${receiptNumber} — ${receipt.client?.name ?? 'cliente'} — ${amountFormatted} — Coopertáxi Jundiaí.`;
 
-      if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        const amountFormatted = ReceiptsComponent.currencyFormatter.format(receipt.amount);
-        await navigator.share({
-          title: `Recibo Nº ${receiptNumber}`,
-          text: `Recibo Nº ${receiptNumber} — ${receipt.client?.name ?? 'cliente'} — ${amountFormatted} — Coopertáxi Jundiaí.`,
-          files: [file]
-        });
-        return;
+      const shared = await this.shareService.sharePdf(blob, fileName, title, text);
+
+      if (!shared) {
+        this.setFeedback(`PDF "${fileName}" baixado. Para enviar pelo WhatsApp, abra o WhatsApp Web e anexe o arquivo.`);
       }
-
-      // Fallback para desktop ou navegadores sem suporte à Web Share API
-      this.downloadPdf(blob, fileName);
-      this.setFeedback(`PDF "${fileName}" baixado. Para enviar pelo WhatsApp, abra o WhatsApp Web e anexe o arquivo.`);
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
-        // Usuário cancelou o seletor nativo — comportamento esperado, sem feedback de erro
         return;
       }
       console.error('Erro ao compartilhar recibo', error);
@@ -379,12 +374,4 @@ export class ReceiptsComponent implements OnInit {
     setTimeout(() => { this.shareFeedback = ''; }, 12000);
   }
 
-  private downloadPdf(blob: Blob, fileName: string): void {
-    const fileUrl = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = fileUrl;
-    link.download = fileName;
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(fileUrl), 1000);
-  }
 }

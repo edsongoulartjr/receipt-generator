@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Coopertáxi Recibos</string>
+    <string name="title_activity_main">Coopertáxi Recibos</string>
+    <string name="package_name">br.com.coopertaxijundiaisp.receipts</string>
+    <string name="custom_url_scheme">br.com.coopertaxijundiaisp.receipts</string>
+</resources>
