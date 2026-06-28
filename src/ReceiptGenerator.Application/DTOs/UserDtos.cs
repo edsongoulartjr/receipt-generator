@@ -26,3 +26,18 @@ public enum CreateUserStatus
 public sealed record CreateUserResult(
     CreateUserStatus Status,
     UserResponse? User = null);
+
+public sealed record UpdateProfileRequest(
+    [MaxLength(200)] string? FullName,
+    string? CurrentPassword,
+    [MinLength(6), MaxLength(100)] string? NewPassword);
+
+public enum UpdateProfileStatus
+{
+    Ok,
+    UserNotFound,
+    WrongPassword,
+    NewPasswordRequired
+}
+
+public sealed record UpdateProfileResult(UpdateProfileStatus Status);

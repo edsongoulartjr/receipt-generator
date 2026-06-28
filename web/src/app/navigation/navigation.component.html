@@ -20,6 +20,7 @@
         <span class="nav-separator" aria-hidden="true"></span>
         <a routerLink="/report" routerLinkActive="active" class="nav-link nav-link-secondary" (click)="menuOpen = false">Relatório</a>
         <a routerLink="/users" routerLinkActive="active" class="nav-link nav-link-secondary" *ngIf="authService.isAdminOrAbove()" (click)="menuOpen = false">Usuários</a>
+        <a routerLink="/profile" routerLinkActive="active" class="nav-link nav-link-secondary" (click)="menuOpen = false">Meu perfil</a>
         <button type="button" (click)="logout()" class="nav-link logout-button">Sair</button>
     </div>
 </nav>

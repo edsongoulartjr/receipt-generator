@@ -1,12 +1,10 @@
 import { HttpErrorResponse, HttpInterceptorFn, HttpRequest } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { Router } from '@angular/router';
 import { catchError, filter, switchMap, take, throwError } from 'rxjs';
 import { AuthService } from './auth.service';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
-  const router = inject(Router);
 
   // Endpoints de auth não recebem Bearer e não disparam refresh
   if (isAuthEndpoint(req)) {
@@ -21,7 +19,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       if (error.status !== 401) {
         return throwError(() => error);
       }
-      return handle401(req, next, authService, router);
+      return handle401(req, next, authService);
     })
   );
 };
@@ -29,8 +27,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 function handle401(
   req: HttpRequest<unknown>,
   next: Parameters<HttpInterceptorFn>[1],
-  authService: AuthService,
-  router: Router
+  authService: AuthService
 ) {
   if (!authService.isRefreshing) {
     // Primeira requisição a receber 401 — inicia o refresh

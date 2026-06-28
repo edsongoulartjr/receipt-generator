@@ -44,6 +44,28 @@ h2 {
     color: #151515;
 }
 
+.receipts-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.period-filter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.filter-select {
+    width: auto;
+    min-width: 130px;
+    font-size: 0.875rem;
+    padding: 0.3rem 0.6rem;
+}
+
 .form-section {
     border: 1px solid #eee7d3;
     border-radius: 8px;

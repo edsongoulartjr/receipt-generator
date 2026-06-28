@@ -113,8 +113,24 @@
     </div>
 
     <div class="card">
-        <div class="card-header">
+        <div class="card-header receipts-header">
             <h3>Recibos Emitidos</h3>
+            <div class="period-filter">
+                <select [(ngModel)]="filterMonth" (ngModelChange)="onFilterChange()" name="filterMonth"
+                    aria-label="Filtrar por mês" class="form-control filter-select">
+                    <option [ngValue]="undefined">Todos os meses</option>
+                    <option *ngFor="let m of months; trackBy: trackByMonthValue" [ngValue]="m.value">{{ m.label }}</option>
+                </select>
+                <select [(ngModel)]="filterYear" (ngModelChange)="onFilterChange()" name="filterYear"
+                    aria-label="Filtrar por ano" class="form-control filter-select">
+                    <option [ngValue]="undefined">Todos os anos</option>
+                    <option *ngFor="let y of availableYears; trackBy: trackByYear" [ngValue]="y">{{ y }}</option>
+                </select>
+                <button type="button" class="btn btn-secondary btn-sm" (click)="clearFilter()"
+                    *ngIf="filterMonth !== undefined || filterYear !== undefined">
+                    Limpar filtro
+                </button>
+            </div>
         </div>
         <div class="card-body">
             <p *ngIf="receipts.length === 0 && !isLoadingPage">Nenhum recibo emitido ainda.</p>

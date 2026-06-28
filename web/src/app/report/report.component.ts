@@ -115,4 +115,16 @@ export class ReportComponent implements OnInit {
   trackByRow(_index: number, row: MonthlyReportRow): string {
     return `${row.year}-${row.month}`;
   }
+
+  trackByYear(_index: number, y: number): number {
+    return y;
+  }
+
+  trackByMonthValue(_index: number, m: { value: number }): number {
+    return m.value;
+  }
+
+  trackByUserId(_index: number, u: User): number {
+    return u.id;
+  }
 }

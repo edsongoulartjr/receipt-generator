@@ -8,7 +8,7 @@
                     <label for="filterYear">Ano</label>
                     <select id="filterYear" class="form-control" [(ngModel)]="selectedYear" (ngModelChange)="load()">
                         <option [ngValue]="null">Todos os anos</option>
-                        <option *ngFor="let y of years" [value]="y">{{ y }}</option>
+                        <option *ngFor="let y of years; trackBy: trackByYear" [value]="y">{{ y }}</option>
                     </select>
                 </div>
 
@@ -16,7 +16,7 @@
                     <label for="filterMonth">Mês</label>
                     <select id="filterMonth" class="form-control" [(ngModel)]="selectedMonth" (ngModelChange)="load()">
                         <option [ngValue]="null">Todos os meses</option>
-                        <option *ngFor="let m of monthOptions" [value]="m.value">{{ m.label }}</option>
+                        <option *ngFor="let m of monthOptions; trackBy: trackByMonthValue" [value]="m.value">{{ m.label }}</option>
                     </select>
                 </div>
 
@@ -24,7 +24,7 @@
                     <label for="filterDriver">Motorista</label>
                     <select id="filterDriver" class="form-control" [(ngModel)]="selectedDriverId" (ngModelChange)="load()">
                         <option [ngValue]="null">Todos os motoristas</option>
-                        <option *ngFor="let d of drivers" [value]="d.id">{{ d.username }}</option>
+                        <option *ngFor="let d of drivers; trackBy: trackByUserId" [value]="d.id">{{ d.username }}</option>
                     </select>
                 </div>
 

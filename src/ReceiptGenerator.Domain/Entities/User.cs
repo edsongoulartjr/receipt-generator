@@ -56,6 +56,12 @@ public sealed class User
         RefreshTokenExpiry = expiry;
     }
 
+    public void ChangePasswordHash(string newPasswordHash)
+    {
+        PasswordHash = Required(newPasswordHash, nameof(newPasswordHash), 500);
+        ClearRefreshToken();
+    }
+
     public void ClearRefreshToken()
     {
         RefreshTokenHash = null;

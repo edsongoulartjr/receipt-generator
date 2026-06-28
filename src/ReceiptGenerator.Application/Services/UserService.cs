@@ -72,6 +72,41 @@ public sealed class UserService : IUserService
         return true;
     }
 
+    public async Task<UserResponse?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var user = await _users.GetByIdAsync(id, cancellationToken);
+        return user is null ? null : Map(user);
+    }
+
+    public async Task<UpdateProfileResult> UpdateProfileAsync(
+        int userId, UpdateProfileRequest request, CancellationToken cancellationToken = default)
+    {
+        var user = await _users.GetByIdAsync(userId, cancellationToken);
+        if (user is null)
+        {
+            return new UpdateProfileResult(UpdateProfileStatus.UserNotFound);
+        }
+
+        if (request.NewPassword is not null)
+        {
+            if (string.IsNullOrWhiteSpace(request.CurrentPassword)
+                || !_passwordHasher.Verify(request.CurrentPassword, user.PasswordHash))
+            {
+                return new UpdateProfileResult(UpdateProfileStatus.WrongPassword);
+            }
+
+            user.ChangePasswordHash(_passwordHasher.Hash(request.NewPassword));
+        }
+
+        if (request.FullName is not null)
+        {
+            user.SetFullName(request.FullName);
+        }
+
+        await _users.UpdateAsync(user, cancellationToken);
+        return new UpdateProfileResult(UpdateProfileStatus.Ok);
+    }
+
     private static UserResponse Map(User user) =>
         new(user.Id, user.Username, user.FullName, user.Role, user.IsActive);
 }

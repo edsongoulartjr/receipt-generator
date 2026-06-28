@@ -12,12 +12,13 @@ public sealed class ReceiptServiceTests
 {
     private readonly IReceiptRepository _receipts = Substitute.For<IReceiptRepository>();
     private readonly IClientRepository _clients = Substitute.For<IClientRepository>();
+    private readonly IUserRepository _users = Substitute.For<IUserRepository>();
     private readonly IReceiptPdfGenerator _pdfGenerator = Substitute.For<IReceiptPdfGenerator>();
     private readonly ReceiptService _sut;
 
     public ReceiptServiceTests()
     {
-        _sut = new ReceiptService(_receipts, _clients, _pdfGenerator);
+        _sut = new ReceiptService(_receipts, _clients, _users, _pdfGenerator);
     }
 
     // -----------------------------------------------------------------------
@@ -32,7 +33,7 @@ public sealed class ReceiptServiceTests
             new(1, 10, "Corrida A", 50m),
             new(2, 10, "Corrida B", 80m)
         };
-        _receipts.GetByUserIdAsync(10, 1, 20, Arg.Any<CancellationToken>())
+        _receipts.GetByUserIdAsync(10, 1, 20, Arg.Any<int?>(), Arg.Any<int?>(), Arg.Any<CancellationToken>())
             .Returns(((IReadOnlyList<Receipt>)list, 2));
 
         var result = await _sut.GetByUserIdAsync(10, 1, 20);
@@ -47,7 +48,7 @@ public sealed class ReceiptServiceTests
     [Fact(DisplayName = "GetByUserId returns an empty paged response when the user has no receipts")]
     public async Task GetByUserIdAsync_WhenNoReceipts_ReturnsEmptyPagedResponse()
     {
-        _receipts.GetByUserIdAsync(99, 1, 20, Arg.Any<CancellationToken>())
+        _receipts.GetByUserIdAsync(99, 1, 20, Arg.Any<int?>(), Arg.Any<int?>(), Arg.Any<CancellationToken>())
             .Returns(((IReadOnlyList<Receipt>)new List<Receipt>(), 0));
 
         var result = await _sut.GetByUserIdAsync(99, 1, 20);
@@ -92,11 +93,13 @@ public sealed class ReceiptServiceTests
     [Fact(DisplayName = "Create returns null when the referenced client does not belong to the user")]
     public async Task CreateAsync_WhenClientNotFound_ReturnsNull()
     {
+        var driver = new User("motorista", "hash", UserRole.Driver, "Motorista Teste");
+        _users.GetByIdAsync(10, Arg.Any<CancellationToken>()).Returns(driver);
         _clients.GetByIdAndUserIdAsync(1, 10, Arg.Any<CancellationToken>())
             .Returns((Client?)null);
 
         var request = new ReceiptRequest(1, "Corrida", 50m, null, null, null, null, null, null, null);
-        var result = await _sut.CreateAsync(10, request);
+        var result = await _sut.CreateAsync(10, UserRole.Driver, request);
 
         result.Should().BeNull();
         await _receipts.DidNotReceive().AddAsync(Arg.Any<Receipt>(), Arg.Any<CancellationToken>());
@@ -105,7 +108,9 @@ public sealed class ReceiptServiceTests
     [Fact(DisplayName = "Create persists the receipt and returns a response when data is valid")]
     public async Task CreateAsync_WithValidData_AddsReceiptAndReturnsResponse()
     {
+        var driver = new User("motorista", "hash", UserRole.Driver, "Motorista Teste");
         var client = new Client("Empresa ABC", "", "", 10);
+        _users.GetByIdAsync(10, Arg.Any<CancellationToken>()).Returns(driver);
         _clients.GetByIdAndUserIdAsync(1, 10, Arg.Any<CancellationToken>())
             .Returns(client);
         _receipts.GetNextNumberAsync(10, Arg.Any<CancellationToken>())
@@ -114,7 +119,7 @@ public sealed class ReceiptServiceTests
             .Returns((Receipt?)null);
 
         var request = new ReceiptRequest(1, "Transporte executivo", 200m, null, null, null, null, null, null, null);
-        var result = await _sut.CreateAsync(10, request);
+        var result = await _sut.CreateAsync(10, UserRole.Driver, request);
 
         await _receipts.Received(1).AddAsync(Arg.Any<Receipt>(), Arg.Any<CancellationToken>());
         result.Should().NotBeNull();

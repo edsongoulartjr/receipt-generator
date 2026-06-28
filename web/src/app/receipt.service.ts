@@ -51,8 +51,10 @@ export class ReceiptService {
 
   constructor(private http: HttpClient) { }
 
-  getReceipts(page: number = 1, pageSize: number = 20): Observable<PagedResponse<Receipt>> {
-    const params = new HttpParams().set('page', page).set('pageSize', pageSize);
+  getReceipts(page: number = 1, pageSize: number = 20, month?: number, year?: number): Observable<PagedResponse<Receipt>> {
+    let params = new HttpParams().set('page', page).set('pageSize', pageSize);
+    if (month !== undefined) params = params.set('month', month);
+    if (year !== undefined) params = params.set('year', year);
     return this.http.get<PagedResponse<Receipt>>(this.apiUrl, { params });
   }
 

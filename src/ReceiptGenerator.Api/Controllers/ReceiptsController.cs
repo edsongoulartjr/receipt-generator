@@ -23,12 +23,14 @@ public sealed class ReceiptsController : ControllerBase
     public async Task<ActionResult<PagedResponse<ReceiptResponse>>> Get(
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20,
+        [FromQuery] int? month = null,
+        [FromQuery] int? year = null,
         CancellationToken cancellationToken = default)
     {
         if (IsAdmin)
-            return Ok(await _receiptService.GetAllAsync(page, pageSize, cancellationToken));
+            return Ok(await _receiptService.GetAllAsync(page, pageSize, month, year, cancellationToken));
 
-        return Ok(await _receiptService.GetByUserIdAsync(UserId, page, pageSize, cancellationToken));
+        return Ok(await _receiptService.GetByUserIdAsync(UserId, page, pageSize, month, year, cancellationToken));
     }
 
     [HttpGet("{id:int}")]

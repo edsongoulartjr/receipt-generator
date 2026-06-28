@@ -26,16 +26,16 @@ public sealed class ReceiptService : IReceiptService
     }
 
     public async Task<PagedResponse<ReceiptResponse>> GetByUserIdAsync(
-        int userId, int page, int pageSize, CancellationToken cancellationToken = default)
+        int userId, int page, int pageSize, int? month = null, int? year = null, CancellationToken cancellationToken = default)
     {
-        var (items, total) = await _receipts.GetByUserIdAsync(userId, page, pageSize, cancellationToken).ConfigureAwait(false);
+        var (items, total) = await _receipts.GetByUserIdAsync(userId, page, pageSize, month, year, cancellationToken).ConfigureAwait(false);
         return ToPagedResponse(items, page, pageSize, total);
     }
 
     public async Task<PagedResponse<ReceiptResponse>> GetAllAsync(
-        int page, int pageSize, CancellationToken cancellationToken = default)
+        int page, int pageSize, int? month = null, int? year = null, CancellationToken cancellationToken = default)
     {
-        var (items, total) = await _receipts.GetAllPagedAsync(page, pageSize, cancellationToken).ConfigureAwait(false);
+        var (items, total) = await _receipts.GetAllPagedAsync(page, pageSize, month, year, cancellationToken).ConfigureAwait(false);
         return ToPagedResponse(items, page, pageSize, total);
     }
 

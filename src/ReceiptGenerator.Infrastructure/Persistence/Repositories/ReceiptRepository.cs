@@ -14,12 +14,14 @@ public sealed class ReceiptRepository : IReceiptRepository
     }
 
     public async Task<(IReadOnlyList<Receipt> Items, int TotalCount)> GetByUserIdAsync(
-        int userId, int page, int pageSize, CancellationToken cancellationToken = default)
+        int userId, int page, int pageSize, int? month = null, int? year = null, CancellationToken cancellationToken = default)
     {
         var query = BaseQuery()
             .AsNoTracking()
-            .Where(x => x.UserId == userId)
-            .OrderByDescending(x => x.Date);
+            .Where(x => x.UserId == userId);
+
+        query = ApplyPeriodFilter(query, month, year);
+        query = query.OrderByDescending(x => x.Date);
 
         var total = await query.CountAsync(cancellationToken).ConfigureAwait(false);
         var items = await query
@@ -32,11 +34,12 @@ public sealed class ReceiptRepository : IReceiptRepository
     }
 
     public async Task<(IReadOnlyList<Receipt> Items, int TotalCount)> GetAllPagedAsync(
-        int page, int pageSize, CancellationToken cancellationToken = default)
+        int page, int pageSize, int? month = null, int? year = null, CancellationToken cancellationToken = default)
     {
-        var query = BaseQuery()
-            .AsNoTracking()
-            .OrderByDescending(x => x.Date);
+        var query = BaseQuery().AsNoTracking();
+
+        query = ApplyPeriodFilter(query, month, year);
+        query = query.OrderByDescending(x => x.Date);
 
         var total = await query.CountAsync(cancellationToken).ConfigureAwait(false);
         var items = await query
@@ -46,6 +49,13 @@ public sealed class ReceiptRepository : IReceiptRepository
             .ConfigureAwait(false);
 
         return (items, total);
+    }
+
+    private static IQueryable<Receipt> ApplyPeriodFilter(IQueryable<Receipt> query, int? month, int? year)
+    {
+        if (year.HasValue) query = query.Where(x => x.Date.Year == year.Value);
+        if (month.HasValue) query = query.Where(x => x.Date.Month == month.Value);
+        return query;
     }
 
     public Task<Receipt?> GetByIdAndUserIdAsync(int id, int userId, CancellationToken cancellationToken = default)

@@ -50,6 +50,21 @@ export class ReceiptsComponent implements OnInit {
   totalPages = 0;
   totalCount = 0;
 
+  filterMonth: number | undefined = undefined;
+  filterYear: number | undefined = undefined;
+  readonly months = [
+    { value: 1, label: 'Janeiro' }, { value: 2, label: 'Fevereiro' },
+    { value: 3, label: 'Março' }, { value: 4, label: 'Abril' },
+    { value: 5, label: 'Maio' }, { value: 6, label: 'Junho' },
+    { value: 7, label: 'Julho' }, { value: 8, label: 'Agosto' },
+    { value: 9, label: 'Setembro' }, { value: 10, label: 'Outubro' },
+    { value: 11, label: 'Novembro' }, { value: 12, label: 'Dezembro' }
+  ];
+  readonly availableYears: number[] = (() => {
+    const current = new Date().getFullYear();
+    return Array.from({ length: 5 }, (_, i) => current - i);
+  })();
+
   constructor(
     private receiptService: ReceiptService,
     private clientService: ClientService,
@@ -86,7 +101,7 @@ export class ReceiptsComponent implements OnInit {
 
   loadReceipts(): void {
     this.isLoadingPage = true;
-    this.receiptService.getReceipts(this.currentPage, this.pageSize)
+    this.receiptService.getReceipts(this.currentPage, this.pageSize, this.filterMonth, this.filterYear)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (data: PagedResponse<Receipt>) => {
@@ -100,6 +115,18 @@ export class ReceiptsComponent implements OnInit {
           this.isLoadingPage = false;
         }
       });
+  }
+
+  onFilterChange(): void {
+    this.currentPage = 1;
+    this.loadReceipts();
+  }
+
+  clearFilter(): void {
+    this.filterMonth = undefined;
+    this.filterYear = undefined;
+    this.currentPage = 1;
+    this.loadReceipts();
   }
 
   goToPage(page: number): void {
@@ -347,6 +374,14 @@ export class ReceiptsComponent implements OnInit {
     if (!value) return undefined;
     if (value.includes('T')) return value;
     return `1970-01-01T${value}:00Z`;
+  }
+
+  trackByMonthValue(_index: number, m: { value: number }): number {
+    return m.value;
+  }
+
+  trackByYear(_index: number, y: number): number {
+    return y;
   }
 
   trackByReceiptId(_index: number, receipt: Receipt): number | undefined {

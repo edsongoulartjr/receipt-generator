@@ -18,6 +18,12 @@ export interface CreateUserRequest {
   fullName?: string;
 }
 
+export interface UpdateProfileRequest {
+  fullName?: string;
+  currentPassword?: string;
+  newPassword?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -44,5 +50,13 @@ export class UserService {
 
   deactivateUser(id: number): Observable<void> {
     return this.http.put<void>(`${this.apiUrl}/${id}/deactivate`, {});
+  }
+
+  getProfile(): Observable<User> {
+    return this.http.get<User>(`${this.apiUrl}/me`);
+  }
+
+  updateProfile(request: UpdateProfileRequest): Observable<void> {
+    return this.http.put<void>(`${this.apiUrl}/me`, request);
   }
 }

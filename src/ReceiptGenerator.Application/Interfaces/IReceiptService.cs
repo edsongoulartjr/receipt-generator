@@ -4,8 +4,8 @@ namespace ReceiptGenerator.Application.Interfaces;
 
 public interface IReceiptService
 {
-    Task<PagedResponse<ReceiptResponse>> GetByUserIdAsync(int userId, int page, int pageSize, CancellationToken cancellationToken = default);
-    Task<PagedResponse<ReceiptResponse>> GetAllAsync(int page, int pageSize, CancellationToken cancellationToken = default);
+    Task<PagedResponse<ReceiptResponse>> GetByUserIdAsync(int userId, int page, int pageSize, int? month = null, int? year = null, CancellationToken cancellationToken = default);
+    Task<PagedResponse<ReceiptResponse>> GetAllAsync(int page, int pageSize, int? month = null, int? year = null, CancellationToken cancellationToken = default);
 Task<ReceiptResponse?> GetByIdAsync(int id, int userId, CancellationToken cancellationToken = default);
     Task<ReceiptResponse?> GetByAnyIdAsync(int id, CancellationToken cancellationToken = default);
     Task<ReceiptResponse?> CreateAsync(int requestingUserId, string requestingUserRole, ReceiptRequest request, CancellationToken cancellationToken = default);

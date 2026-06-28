@@ -118,7 +118,7 @@ public sealed class ReceiptTests
     {
         var receipt = new Receipt(1, 1, "Original", 50m);
 
-        receipt.Update("Atualizado", 200m, null, null, "02/06/2026", null, null, null, null);
+        receipt.Update("Atualizado", 200m, null, null, "02/06/2026", null, null, null);
 
         receipt.Description.Should().Be("Atualizado");
         receipt.Amount.Should().Be(200m);
@@ -132,7 +132,7 @@ public sealed class ReceiptTests
         var start = DateTime.UtcNow;
         var end = start.AddMinutes(-30);
 
-        var act = () => receipt.Update("Corrida", 50m, start, end, null, null, null, null, null);
+        var act = () => receipt.Update("Corrida", 50m, start, end, null, null, null, null);
 
         act.Should().Throw<ArgumentException>()
             .WithParameterName("endTime");
@@ -143,7 +143,7 @@ public sealed class ReceiptTests
     {
         var receipt = new Receipt(1, 1, "Corrida", 50m);
 
-        receipt.Update("Corrida", 50m, null, null, "   ", "  ", null, null, null);
+        receipt.Update("Corrida", 50m, null, null, "   ", "  ", null, null);
 
         receipt.ServiceDates.Should().BeNull();
         receipt.IssuerName.Should().BeNull();
@@ -155,7 +155,7 @@ public sealed class ReceiptTests
         var receipt = new Receipt(1, 1, "Corrida", 50m);
         var longValue = new string('x', 201);
 
-        var act = () => receipt.Update("Corrida", 50m, null, null, null, longValue, null, null, null);
+        var act = () => receipt.Update("Corrida", 50m, null, null, null, longValue, null, null);
 
         act.Should().Throw<ArgumentException>();
     }
