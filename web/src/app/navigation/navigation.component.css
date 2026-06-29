@@ -1,103 +1,253 @@
+/* ════════════════════════════════════════════════════════════════
+   NAVBAR — variáveis e base
+   ════════════════════════════════════════════════════════════════ */
+:host {
+    --nav-bg: #151515;
+    --nav-accent: #f5c400;
+    --nav-teal: #006f72;
+    --nav-h: 64px;
+    --nav-radius: 6px;
+    display: block;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    /* Sombra sutil para destacar o header do conteúdo ao rolar */
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
+}
+
 .navbar {
-    min-height: 72px;
-    background: #151515;
-    border-bottom: 4px solid #f5c400;
-    padding: 0 28px;
+    background: var(--nav-bg);
+    border-bottom: 3px solid var(--nav-accent);
+    color: #fff;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   BARRA SUPERIOR
+   ════════════════════════════════════════════════════════════════ */
+.navbar-bar {
+    height: var(--nav-h);
+    padding: 0 24px;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    color: white;
+    gap: 8px;
 }
 
+/* ── Brand ── */
 .navbar-brand {
-    color: white;
+    color: #fff;
     text-decoration: none;
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
+    flex-shrink: 0;
+    margin-right: 8px;
 }
 
-.brand-mark {
-    width: 44px;
-    height: 44px;
+.brand-logo {
+    width: 38px;
+    height: 38px;
     border-radius: 8px;
-    background: #f5c400;
-    color: #151515;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 900;
-    letter-spacing: 0;
+    object-fit: cover;
+    flex-shrink: 0;
 }
 
 .brand-copy {
     display: grid;
-    gap: 2px;
+    line-height: 1;
+    gap: 3px;
 }
 
 .brand-copy strong {
-    font-size: 1.1rem;
+    font-size: 1rem;
+    letter-spacing: 0.01em;
 }
 
 .brand-copy small {
-    color: #e9d987;
-    font-size: 0.78rem;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: 400;
 }
 
-.navbar-links {
-    display: flex;
+/* ── Links de navegação principal ── */
+.navbar-nav {
+    display: none; /* mobile-first: escondido por padrão */
     align-items: center;
-    gap: 6px;
+    gap: 2px;
+    flex: 1;
 }
 
 .nav-link {
-    color: white;
+    color: rgba(255, 255, 255, 0.82);
     text-decoration: none;
-    padding: 10px 12px;
-    border-radius: 6px;
-    background: transparent;
-    border: 0;
-    min-height: 38px;
+    padding: 8px 14px;
+    border-radius: var(--nav-radius);
+    font-size: 0.95rem;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s;
 }
 
-.nav-link:hover,
+.nav-link:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+
 .nav-link.active {
-    background-color: rgba(245, 196, 0, 0.18);
+    background: rgba(245, 196, 0, 0.15);
+    color: var(--nav-accent);
+    font-weight: 600;
 }
 
-.logout-button {
-    cursor: pointer;
-    font-size: 1rem;
+/* ── Menu do usuário (desktop) ── */
+.navbar-user {
+    display: none; /* mobile-first: escondido por padrão */
+    position: relative;
+    margin-left: auto;
+    flex-shrink: 0;
 }
 
-.nav-link-secondary {
-    opacity: 0.72;
-    font-size: 0.92rem;
-}
-
-.nav-link-secondary:hover,
-.nav-link-secondary.active {
-    opacity: 1;
-}
-
-/* Separador vertical entre links primários e secundários */
-.nav-separator {
-    display: block;
-    width: 1px;
-    height: 22px;
-    background: rgba(255, 255, 255, 0.2);
-    margin: 0 4px;
-    align-self: center;
-}
-
-/* Navbar-top é transparente no layout desktop (brand + hamburger oculto) */
-.navbar-top {
+.user-btn {
     display: flex;
     align-items: center;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 40px;
+    padding: 5px 14px 5px 5px;
+    cursor: pointer;
+    color: #fff;
+    transition: background 0.15s, border-color 0.15s;
+    min-width: 0;
 }
 
+.user-btn:hover,
+.navbar-user.open .user-btn {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.22);
+}
+
+/* Avatar — círculo com iniciais */
+.user-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--nav-accent);
+    color: var(--nav-bg);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.78rem;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.user-avatar.avatar-admin {
+    background: var(--nav-teal);
+    color: #fff;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
+    line-height: 1.2;
+}
+
+.user-name {
+    font-size: 0.88rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 140px;
+}
+
+.user-role {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: 400;
+    white-space: nowrap;
+}
+
+.user-chevron {
+    color: rgba(255, 255, 255, 0.5);
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+
+.user-chevron.rotated {
+    transform: rotate(180deg);
+}
+
+/* Dropdown */
+.user-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 180px;
+    background: #1e1e1e;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    padding: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    z-index: 200;
+
+    /* Animação de entrada */
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+    pointer-events: none;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.navbar-user.open .user-dropdown {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.82);
+    text-decoration: none;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.12s;
+}
+
+.dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+
+.dropdown-item-danger {
+    color: #ff6b6b;
+}
+
+.dropdown-item-danger:hover {
+    background: rgba(255, 107, 107, 0.12);
+    color: #ff8080;
+}
+
+.dropdown-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+    margin: 4px 0;
+}
+
+/* ── Hambúrguer (mobile) ── */
 .hamburger {
-    display: none;
+    display: flex;
     flex-direction: column;
     justify-content: center;
     gap: 5px;
@@ -105,12 +255,13 @@
     border: 0;
     padding: 8px;
     cursor: pointer;
-    border-radius: 6px;
-    min-height: unset;
+    border-radius: var(--nav-radius);
+    margin-left: auto;
+    transition: background 0.15s;
 }
 
 .hamburger:hover {
-    background: rgba(245, 196, 0, 0.18);
+    background: rgba(255, 255, 255, 0.08);
 }
 
 .hamburger span {
@@ -135,44 +286,143 @@
     transform: translateY(-7px) rotate(-45deg);
 }
 
-@media (max-width: 680px) {
-    .navbar {
-        padding: 12px 16px;
-        flex-direction: column;
-        align-items: stretch;
-        gap: 0;
+/* ════════════════════════════════════════════════════════════════
+   GAVETA MOBILE
+   ════════════════════════════════════════════════════════════════ */
+.mobile-drawer {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    border-top: 1px solid transparent;
+}
+
+.mobile-drawer.open {
+    max-height: 600px;
+    border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Bloco de identidade do usuário */
+.mobile-user-block {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    background: rgba(255, 255, 255, 0.04);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.user-avatar-lg {
+    width: 44px;
+    height: 44px;
+    font-size: 1rem;
+}
+
+.mobile-user-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.mobile-user-name {
+    font-weight: 600;
+    font-size: 0.96rem;
+}
+
+.mobile-role-badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: rgba(245, 196, 0, 0.18);
+    color: var(--nav-accent);
+    width: fit-content;
+}
+
+.mobile-role-badge.badge-admin {
+    background: rgba(0, 111, 114, 0.25);
+    color: #4ecdc4;
+}
+
+/* Links da gaveta */
+.mobile-links,
+.mobile-footer {
+    padding: 8px 12px;
+}
+
+.mobile-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    padding-top: 8px;
+    padding-bottom: 12px;
+}
+
+.mobile-link {
+    display: block;
+    padding: 12px 12px;
+    border-radius: var(--nav-radius);
+    color: rgba(255, 255, 255, 0.82);
+    text-decoration: none;
+    font-size: 0.97rem;
+    background: transparent;
+    border: 0;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+}
+
+.mobile-link:hover,
+.mobile-link.active {
+    background: rgba(255, 255, 255, 0.07);
+    color: #fff;
+}
+
+.mobile-link.active {
+    color: var(--nav-accent);
+    font-weight: 600;
+}
+
+.mobile-link-secondary {
+    opacity: 0.75;
+    font-size: 0.92rem;
+}
+
+.mobile-link-secondary:hover {
+    opacity: 1;
+}
+
+.mobile-logout-btn {
+    color: #ff6b6b;
+}
+
+.mobile-logout-btn:hover {
+    background: rgba(255, 107, 107, 0.1);
+    color: #ff8080;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   BREAKPOINT DESKTOP
+   ════════════════════════════════════════════════════════════════ */
+@media (min-width: 860px) {
+    .navbar-bar {
+        padding: 0 32px;
     }
 
-    .navbar-top {
-        justify-content: space-between;
+    .navbar-nav {
+        display: flex;
+    }
+
+    .navbar-user {
+        display: flex;
     }
 
     .hamburger {
-        display: flex;
-    }
-
-    .navbar-links {
         display: none;
-        flex-direction: column;
-        gap: 4px;
-        padding-top: 8px;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
-        margin-top: 10px;
     }
 
-    .navbar-links.open {
-        display: flex;
-    }
-
-    .nav-separator {
-        width: 100%;
-        height: 1px;
-        margin: 4px 0;
-    }
-
-    .nav-link {
-        text-align: left;
-        padding: 11px 12px;
-        border-radius: 6px;
+    /* Gaveta nunca aparece no desktop */
+    .mobile-drawer {
+        display: none !important;
     }
 }

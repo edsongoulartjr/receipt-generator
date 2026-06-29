@@ -1,26 +1,109 @@
-<nav class="navbar" *ngIf="authService.isAuthenticated$ | async">
-    <div class="navbar-top">
-        <a routerLink="/" class="navbar-brand" aria-label="Coopertaxi Jundiaí">
-            <span class="brand-mark">CT</span>
+<header class="navbar" *ngIf="authService.isAuthenticated$ | async">
+
+    <!-- ── Barra superior (sempre visível) ────────────────────── -->
+    <div class="navbar-bar">
+
+        <!-- Brand -->
+        <a routerLink="/" class="navbar-brand" aria-label="Coopertaxi Jundiaí" (click)="closeMenus()">
+            <img class="brand-logo" src="assets/coopertaxi-logo.png" alt="Coopertaxi Jundiaí" />
             <span class="brand-copy">
                 <strong>Coopertaxi Jundiaí</strong>
                 <small>Recibos corporativos</small>
             </span>
         </a>
+
+        <!-- Links de navegação principal (desktop) -->
+        <nav class="navbar-nav" aria-label="Navegação principal">
+            <a routerLink="/clients" routerLinkActive="active" class="nav-link">Clientes</a>
+            <a routerLink="/receipts" routerLinkActive="active" class="nav-link">Recibos</a>
+            <a routerLink="/report" routerLinkActive="active" class="nav-link">Relatório</a>
+            <a routerLink="/users" routerLinkActive="active" class="nav-link" *ngIf="isAdmin">Usuários</a>
+        </nav>
+
+        <!-- Menu do usuário (desktop) -->
+        <div class="navbar-user" [class.open]="userMenuOpen" (click)="$event.stopPropagation()">
+            <button type="button" class="user-btn" (click)="toggleUserMenu()"
+                [attr.aria-expanded]="userMenuOpen" aria-haspopup="true"
+                aria-label="Menu do usuário">
+                <span class="user-avatar" [class.avatar-admin]="isAdmin">{{ userInitials }}</span>
+                <span class="user-info">
+                    <span class="user-name">{{ displayName }}</span>
+                    <span class="user-role">{{ roleLabel }}</span>
+                </span>
+                <svg class="user-chevron" [class.rotated]="userMenuOpen"
+                    width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+                    <path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.8"
+                        fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+            </button>
+
+            <div class="user-dropdown" role="menu" aria-label="Opções do usuário">
+                <a routerLink="/profile" class="dropdown-item" role="menuitem" (click)="closeMenus()">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="1.8" />
+                        <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" stroke-width="1.8"
+                            stroke-linecap="round" />
+                    </svg>
+                    Meu perfil
+                </a>
+                <div class="dropdown-divider" role="separator"></div>
+                <button type="button" class="dropdown-item dropdown-item-danger" role="menuitem"
+                    (click)="logout()">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="currentColor"
+                            stroke-width="1.8" stroke-linecap="round" />
+                        <polyline points="16,17 21,12 16,7" stroke="currentColor" stroke-width="1.8"
+                            stroke-linecap="round" stroke-linejoin="round" />
+                        <line x1="21" y1="12" x2="9" y2="12" stroke="currentColor" stroke-width="1.8"
+                            stroke-linecap="round" />
+                    </svg>
+                    Sair
+                </button>
+            </div>
+        </div>
+
+        <!-- Botão hambúrguer (mobile) -->
         <button type="button" class="hamburger" (click)="toggleMenu()"
             [attr.aria-expanded]="menuOpen" aria-label="Abrir menu de navegação">
             <span></span>
             <span></span>
             <span></span>
         </button>
+
     </div>
-    <div class="navbar-links" [class.open]="menuOpen">
-        <a routerLink="/clients" routerLinkActive="active" class="nav-link" (click)="menuOpen = false">Clientes</a>
-        <a routerLink="/receipts" routerLinkActive="active" class="nav-link" (click)="menuOpen = false">Recibos</a>
-        <span class="nav-separator" aria-hidden="true"></span>
-        <a routerLink="/report" routerLinkActive="active" class="nav-link nav-link-secondary" (click)="menuOpen = false">Relatório</a>
-        <a routerLink="/users" routerLinkActive="active" class="nav-link nav-link-secondary" *ngIf="authService.isAdminOrAbove()" (click)="menuOpen = false">Usuários</a>
-        <a routerLink="/profile" routerLinkActive="active" class="nav-link nav-link-secondary" (click)="menuOpen = false">Meu perfil</a>
-        <button type="button" (click)="logout()" class="nav-link logout-button">Sair</button>
+
+    <!-- ── Gaveta mobile (expandível) ─────────────────────────── -->
+    <div class="mobile-drawer" [class.open]="menuOpen" role="dialog"
+        [attr.aria-hidden]="!menuOpen" aria-label="Menu de navegação">
+
+        <!-- Bloco de identidade do usuário -->
+        <div class="mobile-user-block">
+            <span class="user-avatar user-avatar-lg" [class.avatar-admin]="isAdmin">{{ userInitials }}</span>
+            <div class="mobile-user-text">
+                <span class="mobile-user-name">{{ displayName }}</span>
+                <span class="mobile-role-badge" [class.badge-admin]="isAdmin">{{ roleLabel }}</span>
+            </div>
+        </div>
+
+        <!-- Links primários -->
+        <div class="mobile-links">
+            <a routerLink="/clients" routerLinkActive="active" class="mobile-link"
+                (click)="closeMenus()">Clientes</a>
+            <a routerLink="/receipts" routerLinkActive="active" class="mobile-link"
+                (click)="closeMenus()">Recibos</a>
+            <a routerLink="/report" routerLinkActive="active" class="mobile-link"
+                (click)="closeMenus()">Relatório</a>
+            <a routerLink="/users" routerLinkActive="active" class="mobile-link"
+                *ngIf="isAdmin" (click)="closeMenus()">Usuários</a>
+        </div>
+
+        <!-- Rodapé da gaveta: perfil + sair -->
+        <div class="mobile-footer">
+            <a routerLink="/profile" routerLinkActive="active" class="mobile-link mobile-link-secondary"
+                (click)="closeMenus()">Meu perfil</a>
+            <button type="button" class="mobile-link mobile-logout-btn" (click)="logout()">Sair</button>
+        </div>
+
     </div>
-</nav>
+
+</header>

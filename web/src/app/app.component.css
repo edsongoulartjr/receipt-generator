@@ -1,4 +1,4 @@
 .app-shell {
-  min-height: calc(100vh - 72px);
+  min-height: calc(100vh - 67px); /* 64px navbar + 3px border */
   padding-bottom: 36px;
 }
