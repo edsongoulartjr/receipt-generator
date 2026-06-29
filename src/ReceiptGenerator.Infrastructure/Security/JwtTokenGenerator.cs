@@ -32,7 +32,7 @@ public sealed class JwtTokenGenerator : ITokenGenerator
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                 new Claim(ClaimTypes.Name, user.Username),
                 new Claim(ClaimTypes.Role, user.Role),
-                new Claim("fullName", user.FullName)
+                new Claim("fullName", user.FullName ?? string.Empty)
             }),
             Expires = DateTime.UtcNow.AddMinutes(expiryMinutes),
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)

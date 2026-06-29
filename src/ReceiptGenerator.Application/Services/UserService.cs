@@ -103,10 +103,33 @@ public sealed class UserService : IUserService
             user.SetFullName(request.FullName);
         }
 
+        if (request.Phone is not null)
+        {
+            user.SetPhone(request.Phone);
+        }
+
+        if (request.Email is not null)
+        {
+            user.SetEmail(request.Email);
+        }
+
         await _users.UpdateAsync(user, cancellationToken);
         return new UpdateProfileResult(UpdateProfileStatus.Ok);
     }
 
+    public async Task<bool> ResetPasswordAsync(int targetUserId, string newPassword, CancellationToken cancellationToken = default)
+    {
+        var user = await _users.GetByIdAsync(targetUserId, cancellationToken);
+        if (user is null)
+        {
+            return false;
+        }
+
+        user.ChangePasswordHash(_passwordHasher.Hash(newPassword));
+        await _users.UpdateAsync(user, cancellationToken);
+        return true;
+    }
+
     private static UserResponse Map(User user) =>
-        new(user.Id, user.Username, user.FullName, user.Role, user.IsActive);
+        new(user.Id, user.Username, user.FullName, user.Role, user.IsActive, user.Phone, user.Email, user.UpdatedAt);
 }

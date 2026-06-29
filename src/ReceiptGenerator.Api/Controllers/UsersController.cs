@@ -79,6 +79,13 @@ public sealed class UsersController : ControllerBase
         return deactivated ? NoContent() : NotFound();
     }
 
+    [HttpPut("{id:int}/reset-password")]
+    public async Task<IActionResult> ResetPassword(int id, ResetPasswordRequest request, CancellationToken cancellationToken)
+    {
+        var reset = await _userService.ResetPasswordAsync(id, request.NewPassword, cancellationToken);
+        return reset ? NoContent() : NotFound();
+    }
+
     private int UserId => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)
         ?? throw new InvalidOperationException("User id claim was not found."));
 }

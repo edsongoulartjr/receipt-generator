@@ -7,14 +7,19 @@ public sealed record CreateUserRequest(
     [Required, MaxLength(100)] string Username,
     [Required, MinLength(6), MaxLength(100)] string Password,
     [Required] string Role = UserRole.Driver,
-    [MaxLength(200)] string? FullName = null);
+    [MaxLength(200)] string? FullName = null,
+    [MaxLength(50)] string? Phone = null,
+    [MaxLength(200)] string? Email = null);
 
 public sealed record UserResponse(
     int Id,
     string Username,
     string FullName,
     string Role,
-    bool IsActive);
+    bool IsActive,
+    string? Phone,
+    string? Email,
+    DateTime? UpdatedAt);
 
 public enum CreateUserStatus
 {
@@ -30,7 +35,9 @@ public sealed record CreateUserResult(
 public sealed record UpdateProfileRequest(
     [MaxLength(200)] string? FullName,
     string? CurrentPassword,
-    [MinLength(6), MaxLength(100)] string? NewPassword);
+    [MinLength(6), MaxLength(100)] string? NewPassword,
+    [MaxLength(50)] string? Phone,
+    [MaxLength(200)] string? Email);
 
 public enum UpdateProfileStatus
 {
@@ -41,3 +48,6 @@ public enum UpdateProfileStatus
 }
 
 public sealed record UpdateProfileResult(UpdateProfileStatus Status);
+
+public sealed record ResetPasswordRequest(
+    [Required, MinLength(6), MaxLength(100)] string NewPassword);

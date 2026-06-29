@@ -14,13 +14,14 @@ public sealed class ReceiptRepository : IReceiptRepository
     }
 
     public async Task<(IReadOnlyList<Receipt> Items, int TotalCount)> GetByUserIdAsync(
-        int userId, int page, int pageSize, int? month = null, int? year = null, CancellationToken cancellationToken = default)
+        int userId, int page, int pageSize, int? month = null, int? year = null,
+        bool includeCancelled = false, CancellationToken cancellationToken = default)
     {
         var query = BaseQuery()
             .AsNoTracking()
             .Where(x => x.UserId == userId);
 
-        query = ApplyPeriodFilter(query, month, year);
+        query = ApplyFilters(query, month, year, includeCancelled);
         query = query.OrderByDescending(x => x.Date);
 
         var total = await query.CountAsync(cancellationToken).ConfigureAwait(false);
@@ -34,11 +35,12 @@ public sealed class ReceiptRepository : IReceiptRepository
     }
 
     public async Task<(IReadOnlyList<Receipt> Items, int TotalCount)> GetAllPagedAsync(
-        int page, int pageSize, int? month = null, int? year = null, CancellationToken cancellationToken = default)
+        int page, int pageSize, int? month = null, int? year = null,
+        bool includeCancelled = false, CancellationToken cancellationToken = default)
     {
         var query = BaseQuery().AsNoTracking();
 
-        query = ApplyPeriodFilter(query, month, year);
+        query = ApplyFilters(query, month, year, includeCancelled);
         query = query.OrderByDescending(x => x.Date);
 
         var total = await query.CountAsync(cancellationToken).ConfigureAwait(false);
@@ -51,8 +53,10 @@ public sealed class ReceiptRepository : IReceiptRepository
         return (items, total);
     }
 
-    private static IQueryable<Receipt> ApplyPeriodFilter(IQueryable<Receipt> query, int? month, int? year)
+    private static IQueryable<Receipt> ApplyFilters(
+        IQueryable<Receipt> query, int? month, int? year, bool includeCancelled)
     {
+        if (!includeCancelled) query = query.Where(x => x.CancelledAt == null);
         if (year.HasValue) query = query.Where(x => x.Date.Year == year.Value);
         if (month.HasValue) query = query.Where(x => x.Date.Month == month.Value);
         return query;
@@ -121,9 +125,9 @@ public sealed class ReceiptRepository : IReceiptRepository
         await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task DeleteAsync(Receipt receipt, CancellationToken cancellationToken = default)
+    public async Task CancelAsync(Receipt receipt, string? reason, CancellationToken cancellationToken = default)
     {
-        _context.Receipts.Remove(receipt);
+        receipt.Cancel(reason);
         await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 

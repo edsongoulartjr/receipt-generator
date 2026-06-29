@@ -23,6 +23,9 @@ public sealed class ApplicationDbContext : DbContext
             entity.Property(x => x.FullName).HasMaxLength(200).IsRequired().HasDefaultValue(string.Empty);
             entity.Property(x => x.Role).HasMaxLength(50).IsRequired();
             entity.Property(x => x.IsActive).IsRequired();
+            entity.Property(x => x.Phone).HasMaxLength(50);
+            entity.Property(x => x.Email).HasMaxLength(200);
+            entity.Property(x => x.UpdatedAt);
             entity.Property(x => x.RefreshTokenHash).HasMaxLength(64);
             entity.Property(x => x.RefreshTokenExpiry);
             entity.HasIndex(x => x.Username).IsUnique();
@@ -50,6 +53,8 @@ public sealed class ApplicationDbContext : DbContext
             entity.Property(x => x.IssuerPhone).HasMaxLength(50);
             entity.Property(x => x.IssuerEmail).HasMaxLength(200);
             entity.Property(x => x.DriverName).HasMaxLength(200);
+            entity.Property(x => x.CancelledAt);
+            entity.Property(x => x.CancelReason).HasMaxLength(500);
             entity.HasOne(x => x.Client)
                 .WithMany()
                 .HasForeignKey(x => x.ClientId)

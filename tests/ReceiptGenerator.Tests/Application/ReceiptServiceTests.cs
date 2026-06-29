@@ -33,7 +33,7 @@ public sealed class ReceiptServiceTests
             new(1, 10, "Corrida A", 50m),
             new(2, 10, "Corrida B", 80m)
         };
-        _receipts.GetByUserIdAsync(10, 1, 20, Arg.Any<int?>(), Arg.Any<int?>(), Arg.Any<CancellationToken>())
+        _receipts.GetByUserIdAsync(10, 1, 20, Arg.Any<int?>(), Arg.Any<int?>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
             .Returns(((IReadOnlyList<Receipt>)list, 2));
 
         var result = await _sut.GetByUserIdAsync(10, 1, 20);
@@ -48,7 +48,7 @@ public sealed class ReceiptServiceTests
     [Fact(DisplayName = "GetByUserId returns an empty paged response when the user has no receipts")]
     public async Task GetByUserIdAsync_WhenNoReceipts_ReturnsEmptyPagedResponse()
     {
-        _receipts.GetByUserIdAsync(99, 1, 20, Arg.Any<int?>(), Arg.Any<int?>(), Arg.Any<CancellationToken>())
+        _receipts.GetByUserIdAsync(99, 1, 20, Arg.Any<int?>(), Arg.Any<int?>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
             .Returns(((IReadOnlyList<Receipt>)new List<Receipt>(), 0));
 
         var result = await _sut.GetByUserIdAsync(99, 1, 20);
@@ -189,7 +189,7 @@ public sealed class ReceiptServiceTests
         var result = await _sut.DeleteAsync(1, 10);
 
         result.Should().BeFalse();
-        await _receipts.DidNotReceive().DeleteAsync(Arg.Any<Receipt>(), Arg.Any<CancellationToken>());
+        await _receipts.DidNotReceive().CancelAsync(Arg.Any<Receipt>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
     [Fact(DisplayName = "Delete removes the receipt and returns true when found")]
@@ -202,7 +202,7 @@ public sealed class ReceiptServiceTests
         var result = await _sut.DeleteAsync(1, 10);
 
         result.Should().BeTrue();
-        await _receipts.Received(1).DeleteAsync(receipt, Arg.Any<CancellationToken>());
+        await _receipts.Received(1).CancelAsync(receipt, Arg.Any<string?>(), Arg.Any<CancellationToken>());
     }
 
     // -----------------------------------------------------------------------

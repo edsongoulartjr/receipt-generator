@@ -28,6 +28,9 @@ public sealed class User
     public string FullName { get; private set; }
     public string Role { get; private set; }
     public bool IsActive { get; private set; }
+    public string? Phone { get; private set; }
+    public string? Email { get; private set; }
+    public DateTime? UpdatedAt { get; private set; }
     public string? RefreshTokenHash { get; private set; }
     public DateTime? RefreshTokenExpiry { get; private set; }
 
@@ -44,6 +47,21 @@ public sealed class User
         FullName = trimmed.Length > 200
             ? throw new ArgumentException("FullName must have at most 200 characters.", nameof(fullName))
             : trimmed;
+    }
+
+    public void SetPhone(string? phone)
+    {
+        Phone = NullableField(phone, 50, nameof(phone));
+    }
+
+    public void SetEmail(string? email)
+    {
+        Email = NullableField(email, 200, nameof(email));
+    }
+
+    public void Touch()
+    {
+        UpdatedAt = DateTime.UtcNow;
     }
 
     public void Activate() => IsActive = true;
@@ -80,6 +98,15 @@ public sealed class User
             throw new ArgumentException($"{fieldName} is required.", fieldName);
         }
 
+        value = value.Trim();
+        return value.Length > maxLength
+            ? throw new ArgumentException($"{fieldName} must have at most {maxLength} characters.", fieldName)
+            : value;
+    }
+
+    private static string? NullableField(string? value, int maxLength, string fieldName)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
         value = value.Trim();
         return value.Length > maxLength
             ? throw new ArgumentException($"{fieldName} must have at most {maxLength} characters.", fieldName)

@@ -26,16 +26,18 @@ public sealed class ReceiptService : IReceiptService
     }
 
     public async Task<PagedResponse<ReceiptResponse>> GetByUserIdAsync(
-        int userId, int page, int pageSize, int? month = null, int? year = null, CancellationToken cancellationToken = default)
+        int userId, int page, int pageSize, int? month = null, int? year = null,
+        bool includeCancelled = false, CancellationToken cancellationToken = default)
     {
-        var (items, total) = await _receipts.GetByUserIdAsync(userId, page, pageSize, month, year, cancellationToken).ConfigureAwait(false);
+        var (items, total) = await _receipts.GetByUserIdAsync(userId, page, pageSize, month, year, includeCancelled, cancellationToken).ConfigureAwait(false);
         return ToPagedResponse(items, page, pageSize, total);
     }
 
     public async Task<PagedResponse<ReceiptResponse>> GetAllAsync(
-        int page, int pageSize, int? month = null, int? year = null, CancellationToken cancellationToken = default)
+        int page, int pageSize, int? month = null, int? year = null,
+        bool includeCancelled = false, CancellationToken cancellationToken = default)
     {
-        var (items, total) = await _receipts.GetAllPagedAsync(page, pageSize, month, year, cancellationToken).ConfigureAwait(false);
+        var (items, total) = await _receipts.GetAllPagedAsync(page, pageSize, month, year, includeCancelled, cancellationToken).ConfigureAwait(false);
         return ToPagedResponse(items, page, pageSize, total);
     }
 
@@ -140,27 +142,27 @@ public sealed class ReceiptService : IReceiptService
         return true;
     }
 
-    public async Task<bool> DeleteAsync(int id, int userId, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteAsync(int id, int userId, string? reason = null, CancellationToken cancellationToken = default)
     {
         var receipt = await _receipts.GetByIdAndUserIdAsync(id, userId, cancellationToken).ConfigureAwait(false);
-        if (receipt is null)
+        if (receipt is null || receipt.IsCancelled)
         {
             return false;
         }
 
-        await _receipts.DeleteAsync(receipt, cancellationToken).ConfigureAwait(false);
+        await _receipts.CancelAsync(receipt, reason, cancellationToken).ConfigureAwait(false);
         return true;
     }
 
-    public async Task<bool> DeleteByAnyIdAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<bool> DeleteByAnyIdAsync(int id, string? reason = null, CancellationToken cancellationToken = default)
     {
         var receipt = await _receipts.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
-        if (receipt is null)
+        if (receipt is null || receipt.IsCancelled)
         {
             return false;
         }
 
-        await _receipts.DeleteAsync(receipt, cancellationToken).ConfigureAwait(false);
+        await _receipts.CancelAsync(receipt, reason, cancellationToken).ConfigureAwait(false);
         return true;
     }
 
@@ -202,7 +204,9 @@ public sealed class ReceiptService : IReceiptService
             receipt.IssuerPhone,
             receipt.IssuerEmail,
             receipt.DriverName,
-            client);
+            client,
+            receipt.CancelledAt,
+            receipt.CancelReason);
     }
 
     private static DateTime? NormalizeDateTime(DateTime? value)

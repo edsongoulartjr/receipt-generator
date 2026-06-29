@@ -11,4 +11,5 @@ public interface IUserService
     Task<bool> ActivateAsync(int id, CancellationToken cancellationToken = default);
     Task<bool> DeactivateAsync(int id, CancellationToken cancellationToken = default);
     Task<UpdateProfileResult> UpdateProfileAsync(int userId, UpdateProfileRequest request, CancellationToken cancellationToken = default);
+    Task<bool> ResetPasswordAsync(int targetUserId, string newPassword, CancellationToken cancellationToken = default);
 }

@@ -34,4 +34,9 @@ public sealed record ReceiptResponse(
     string? IssuerPhone,
     string? IssuerEmail,
     string? DriverName,
-    ClientResponse Client);
+    ClientResponse Client,
+    DateTime? CancelledAt,
+    string? CancelReason);
+
+public sealed record CancelReceiptRequest(
+    [MaxLength(500)] string? Reason = null);

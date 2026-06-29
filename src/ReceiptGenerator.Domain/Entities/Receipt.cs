@@ -40,10 +40,14 @@ public sealed class Receipt
     public string? IssuerPhone { get; private set; }
     public string? IssuerEmail { get; private set; }
     public string? DriverName { get; private set; }
+    public DateTime? CancelledAt { get; private set; }
+    public string? CancelReason { get; private set; }
     public int ClientId { get; private set; }
     public Client? Client { get; private set; }
     public int UserId { get; private set; }
     public User? User { get; private set; }
+
+    public bool IsCancelled => CancelledAt.HasValue;
 
     public void SetNumber(int number)
     {
@@ -53,6 +57,13 @@ public sealed class Receipt
     public void ChangeClient(int clientId)
     {
         ClientId = clientId > 0 ? clientId : throw new ArgumentOutOfRangeException(nameof(clientId));
+    }
+
+    public void Cancel(string? reason = null)
+    {
+        if (IsCancelled) return;
+        CancelledAt = DateTime.UtcNow;
+        CancelReason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim()[..Math.Min(reason.Trim().Length, 500)];
     }
 
     public void Update(

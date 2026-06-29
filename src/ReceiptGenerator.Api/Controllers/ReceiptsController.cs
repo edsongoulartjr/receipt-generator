@@ -25,12 +25,16 @@ public sealed class ReceiptsController : ControllerBase
         [FromQuery] int pageSize = 20,
         [FromQuery] int? month = null,
         [FromQuery] int? year = null,
+        [FromQuery] bool includeCancelled = false,
         CancellationToken cancellationToken = default)
     {
-        if (IsAdmin)
-            return Ok(await _receiptService.GetAllAsync(page, pageSize, month, year, cancellationToken));
+        // Somente admins podem ver recibos cancelados
+        var showCancelled = IsAdmin && includeCancelled;
 
-        return Ok(await _receiptService.GetByUserIdAsync(UserId, page, pageSize, month, year, cancellationToken));
+        if (IsAdmin)
+            return Ok(await _receiptService.GetAllAsync(page, pageSize, month, year, showCancelled, cancellationToken));
+
+        return Ok(await _receiptService.GetByUserIdAsync(UserId, page, pageSize, month, year, showCancelled, cancellationToken));
     }
 
     [HttpGet("{id:int}")]
@@ -62,11 +66,14 @@ public sealed class ReceiptsController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
-    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+    public async Task<IActionResult> Delete(
+        int id,
+        [FromBody] CancelReceiptRequest? request,
+        CancellationToken cancellationToken)
     {
         var deleted = IsAdmin
-            ? await _receiptService.DeleteByAnyIdAsync(id, cancellationToken)
-            : await _receiptService.DeleteAsync(id, UserId, cancellationToken);
+            ? await _receiptService.DeleteByAnyIdAsync(id, request?.Reason, cancellationToken)
+            : await _receiptService.DeleteAsync(id, UserId, request?.Reason, cancellationToken);
         return deleted ? NoContent() : NotFound();
     }
 

@@ -6,7 +6,6 @@ using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using ReceiptGenerator.Application.Abstractions;
 using ReceiptGenerator.Domain.Entities;
-
 namespace ReceiptGenerator.Infrastructure.Pdf;
 
 public sealed class QuestReceiptPdfGenerator : IReceiptPdfGenerator
@@ -66,6 +65,18 @@ public sealed class QuestReceiptPdfGenerator : IReceiptPdfGenerator
                 page.Size(PageSizes.A4);
                 page.Margin(36);
                 page.DefaultTextStyle(x => x.FontSize(11).FontFamily("Lato"));
+
+                if (receipt.IsCancelled)
+                {
+                    const string cancelledWatermark =
+                        """<svg xmlns="http://www.w3.org/2000/svg" width="595" height="842">""" +
+                        """<text x="297" y="421" transform="rotate(-45,297,421)" """ +
+                        """text-anchor="middle" dominant-baseline="middle" """ +
+                        """font-size="88" font-weight="bold" fill="#CC0000" opacity="0.18">CANCELADO</text>""" +
+                        """</svg>""";
+
+                    page.Foreground().Svg(cancelledWatermark);
+                }
 
                 page.Content().Border(1).BorderColor("#b8d7d5").Padding(22).Column(column =>
                 {

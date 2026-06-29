@@ -56,6 +56,7 @@ public sealed class UserRepository : IUserRepository
 
     public async Task UpdateAsync(User user, CancellationToken cancellationToken = default)
     {
+        user.Touch();
         await _context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 }
