@@ -78,7 +78,25 @@ export class ReceiptsComponent implements OnInit {
     this.loadReceipts();
     if (this.authService.isAdminOrAbove()) {
       this.loadDrivers();
+    } else {
+      this.prefillIssuerFromProfile();
     }
+  }
+
+  private prefillIssuerFromProfile(): void {
+    this.userService.getProfile()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (user) => {
+          if (!this.currentReceipt.issuerPhone && user.phone) {
+            this.currentReceipt.issuerPhone = user.phone;
+          }
+          if (!this.currentReceipt.issuerEmail && user.email) {
+            this.currentReceipt.issuerEmail = user.email;
+          }
+        },
+        error: () => { /* silently ignore — profile is optional context */ }
+      });
   }
 
   loadDrivers(): void {
@@ -269,11 +287,14 @@ export class ReceiptsComponent implements OnInit {
   }
 
   deleteReceipt(id: number): void {
-    this.receiptService.deleteReceipt(id)
+    const reason = window.prompt('Motivo do cancelamento (opcional):') ?? undefined;
+    if (reason === undefined) return;
+
+    this.receiptService.deleteReceipt(id, reason || undefined)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => { this.currentPage = 1; this.loadReceipts(); },
-        error: (err) => { console.error('Erro ao excluir recibo', err); }
+        error: (err) => { console.error('Erro ao cancelar recibo', err); }
       });
   }
 

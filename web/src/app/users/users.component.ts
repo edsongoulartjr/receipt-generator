@@ -79,6 +79,29 @@ export class UsersComponent implements OnInit {
       });
   }
 
+  resetPassword(user: User): void {
+    const newPassword = window.prompt(`Nova senha para "${user.fullName || user.username}" (mínimo 6 caracteres):`);
+    if (!newPassword) return;
+    if (newPassword.length < 6) {
+      alert('A senha deve ter pelo menos 6 caracteres.');
+      return;
+    }
+
+    this.userService.resetPassword(user.id, newPassword)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.successMessage = `Senha de "${user.fullName || user.username}" redefinida com sucesso.`;
+          this.errorMessage = '';
+        },
+        error: (err) => {
+          console.error('Erro ao redefinir senha', err);
+          this.errorMessage = 'Não foi possível redefinir a senha. Tente novamente.';
+          this.successMessage = '';
+        }
+      });
+  }
+
   trackByUserId(_index: number, user: User): number {
     return user.id;
   }

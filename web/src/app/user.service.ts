@@ -9,6 +9,8 @@ export interface User {
   fullName: string;
   role: 'SystemAdmin' | 'CoopAdmin' | 'Driver';
   isActive: boolean;
+  phone?: string;
+  email?: string;
 }
 
 export interface CreateUserRequest {
@@ -22,6 +24,8 @@ export interface UpdateProfileRequest {
   fullName?: string;
   currentPassword?: string;
   newPassword?: string;
+  phone?: string;
+  email?: string;
 }
 
 @Injectable({
@@ -58,5 +62,9 @@ export class UserService {
 
   updateProfile(request: UpdateProfileRequest): Observable<void> {
     return this.http.put<void>(`${this.apiUrl}/me`, request);
+  }
+
+  resetPassword(id: number, newPassword: string): Observable<void> {
+    return this.http.put<void>(`${this.apiUrl}/${id}/reset-password`, { newPassword });
   }
 }

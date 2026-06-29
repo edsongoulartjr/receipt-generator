@@ -39,8 +39,13 @@ export interface Receipt {
   startTime?: string;
   endTime?: string;
   serviceDates?: string;
+  issuerName?: string;
+  issuerPhone?: string;
+  issuerEmail?: string;
   driverName?: string;
   driverUserId?: number;
+  cancelledAt?: string;
+  cancelReason?: string;
 }
 
 @Injectable({
@@ -70,8 +75,8 @@ export class ReceiptService {
     return this.http.put<void>(`${this.apiUrl}/${id}`, receipt);
   }
 
-  deleteReceipt(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  deleteReceipt(id: number, reason?: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${id}`, { body: { reason: reason ?? null } });
   }
 
   generateReceiptPdf(id: number): Observable<Blob> {

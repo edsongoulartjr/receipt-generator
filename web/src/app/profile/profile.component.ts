@@ -17,6 +17,8 @@ export class ProfileComponent implements OnInit {
   profile: User | null = null;
 
   fullName = '';
+  phone = '';
+  email = '';
   currentPassword = '';
   newPassword = '';
   confirmPassword = '';
@@ -38,6 +40,8 @@ export class ProfileComponent implements OnInit {
         next: (user) => {
           this.profile = user;
           this.fullName = user.fullName;
+          this.phone = user.phone ?? '';
+          this.email = user.email ?? '';
         },
         error: (err) => { console.error('Erro ao carregar perfil', err); }
       });
@@ -62,6 +66,8 @@ export class ProfileComponent implements OnInit {
 
     const request: UpdateProfileRequest = {
       fullName: this.fullName !== this.profile?.fullName ? this.fullName : undefined,
+      phone: this.phone !== (this.profile?.phone ?? '') ? this.phone : undefined,
+      email: this.email !== (this.profile?.email ?? '') ? this.email : undefined,
       currentPassword: this.currentPassword || undefined,
       newPassword: this.newPassword || undefined
     };

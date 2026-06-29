@@ -100,7 +100,20 @@ export class AuthService {
     if (!token) return null;
     try {
       const payload = JSON.parse(atob(this.toBase64Url(token.split('.')[1])));
-      return payload['fullName'] ?? null;
+      return payload['fullName'] || null;
+    } catch {
+      return null;
+    }
+  }
+
+  getUsername(): string | null {
+    const token = this.getToken();
+    if (!token) return null;
+    try {
+      const payload = JSON.parse(atob(this.toBase64Url(token.split('.')[1])));
+      return payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name']
+        ?? payload['name']
+        ?? null;
     } catch {
       return null;
     }
