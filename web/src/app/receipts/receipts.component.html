@@ -11,16 +11,15 @@
                     <h4>Cliente e serviço</h4>
                     <div class="row">
                         <div class="form-group">
-                            <label for="clientName">Cliente</label>
+                            <label for="clientName">Cliente <span class="optional-hint">(opcional)</span></label>
                             <input type="text" id="clientName"
                                 [value]="clientNameInput"
                                 (input)="onClientNameChange($any($event.target).value)"
                                 list="client-list"
                                 name="clientName"
                                 class="form-control"
-                                placeholder="Digite o nome do cliente"
-                                autocomplete="off"
-                                required>
+                                placeholder="Nome do cliente (deixe vazio para omitir)"
+                                autocomplete="off">
                             <datalist id="client-list">
                                 <option *ngFor="let client of clients; trackBy: trackByClientId" [value]="client.name"></option>
                             </datalist>
@@ -42,12 +41,15 @@
                             name="description" class="form-control" required>
                     </div>
                     <div class="form-group">
-                        <label for="serviceDates">Data do Serviço</label>
-                        <input type="date" id="serviceDates"
-                            [value]="serviceDateInput"
-                            (change)="onServiceDateChange($any($event.target).value)"
-                            name="serviceDates"
-                            class="form-control">
+                        <label for="payerTaxId">CPF / CNPJ do Pagador <span class="optional-hint">(opcional)</span></label>
+                        <input type="text" inputmode="numeric" id="payerTaxId"
+                            [value]="payerTaxIdDisplay"
+                            (input)="onPayerTaxIdChange($any($event.target).value)"
+                            name="payerTaxId"
+                            class="form-control"
+                            placeholder="000.000.000-00"
+                            maxlength="18"
+                            autocomplete="off">
                     </div>
                 </div>
 
@@ -72,10 +74,29 @@
 
                 <button type="button" class="toggle-extras" (click)="showExtras = !showExtras"
                     [attr.aria-expanded]="showExtras">
-                    {{ showExtras ? '▲ Ocultar horários' : '▼ Adicionar horários' }}
+                    {{ showExtras ? '▲ Ocultar datas e horários' : '▼ Adicionar datas e horários' }}
                 </button>
 
                 <div *ngIf="showExtras">
+                    <div class="form-section">
+                        <h4>Período do Serviço</h4>
+                        <div class="row">
+                            <div class="form-group">
+                                <label for="serviceStartDate">Data de Início</label>
+                                <input type="date" id="serviceStartDate"
+                                    [(ngModel)]="currentReceipt.serviceStartDate"
+                                    name="serviceStartDate"
+                                    class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label for="serviceEndDate">Data de Fim <span class="optional-hint">(opcional)</span></label>
+                                <input type="date" id="serviceEndDate"
+                                    [(ngModel)]="currentReceipt.serviceEndDate"
+                                    name="serviceEndDate"
+                                    class="form-control">
+                            </div>
+                        </div>
+                    </div>
                     <div class="form-section">
                         <h4>Horários</h4>
                         <div class="row">

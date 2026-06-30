@@ -127,16 +127,27 @@ public sealed class QuestReceiptPdfGenerator : IReceiptPdfGenerator
                     // ── DECLARAÇÃO ────────────────────────────────────────────
                     column.Item().Text(text =>
                     {
-                        text.Span("Recebemos de ").SemiBold();
-                        text.Span(receipt.Client?.Name ?? "cliente não informado").Bold();
+                        var clientName = receipt.Client?.Name;
+                        var taxId = receipt.PayerTaxId ?? receipt.Client?.TaxId;
 
-                        if (!string.IsNullOrWhiteSpace(receipt.Client?.TaxId))
+                        if (!string.IsNullOrWhiteSpace(clientName))
                         {
-                            text.Span(", inscrito(a) no CPF/CNPJ sob nº ");
-                            text.Span(receipt.Client.TaxId).Bold();
+                            text.Span("Recebemos de ").SemiBold();
+                            text.Span(clientName).Bold();
+
+                            if (!string.IsNullOrWhiteSpace(taxId))
+                            {
+                                text.Span(", inscrito(a) no CPF/CNPJ sob nº ");
+                                text.Span(taxId).Bold();
+                            }
+
+                            text.Span(", o valor de ");
+                        }
+                        else
+                        {
+                            text.Span("Recebemos o valor de ").SemiBold();
                         }
 
-                        text.Span(", o valor de ");
                         text.Span(receipt.Amount.ToString("C", Brazil)).Bold();
                         text.Span($" ({amountText}).");
                     });
@@ -150,15 +161,15 @@ public sealed class QuestReceiptPdfGenerator : IReceiptPdfGenerator
                         details.Item().Text(receipt.Description)
                             .Bold().FontSize(12);
 
-                        var hasDates = !string.IsNullOrWhiteSpace(receipt.ServiceDates);
+                        var dateRange = FormatServiceDateRange(receipt);
                         var serviceTime = FormatServiceTime(receipt);
-                        if (hasDates || serviceTime is not null)
+                        if (dateRange is not null || serviceTime is not null)
                         {
                             details.Item().Row(dateRow =>
                             {
-                                if (hasDates)
+                                if (dateRange is not null)
                                     dateRow.RelativeItem()
-                                        .Text($"Data(s) do serviço: {receipt.ServiceDates}")
+                                        .Text($"Data(s) do serviço: {dateRange}")
                                         .FontSize(10);
                                 if (serviceTime is not null)
                                     dateRow.RelativeItem()
@@ -233,6 +244,20 @@ public sealed class QuestReceiptPdfGenerator : IReceiptPdfGenerator
         {
             column.Item().Text($"{label}: {value}");
         }
+    }
+
+    private static string? FormatServiceDateRange(Receipt receipt)
+    {
+        if (receipt.ServiceStartDate.HasValue)
+        {
+            var start = receipt.ServiceStartDate.Value.ToString("dd/MM/yyyy");
+            if (receipt.ServiceEndDate.HasValue && receipt.ServiceEndDate != receipt.ServiceStartDate)
+                return $"{start} a {receipt.ServiceEndDate.Value:dd/MM/yyyy}";
+            return start;
+        }
+
+        // fallback para recibos antigos com serviceDates em texto livre
+        return string.IsNullOrWhiteSpace(receipt.ServiceDates) ? null : receipt.ServiceDates;
     }
 
     private static string? FormatServiceTime(Receipt receipt)

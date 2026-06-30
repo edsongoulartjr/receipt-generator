@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace ReceiptGenerator.Application.DTOs;
 
 public sealed record ReceiptRequest(
-    [Required] int ClientId,
+    int? ClientId,
     [Required, MaxLength(1000)] string Description,
     [Range(0.01, double.MaxValue)] decimal Amount,
     DateTime? StartTime,
@@ -12,6 +12,9 @@ public sealed record ReceiptRequest(
     [MaxLength(200)] string? IssuerName,
     [MaxLength(50)] string? IssuerPhone,
     [MaxLength(200)] string? IssuerEmail,
+    [MaxLength(18)] string? PayerTaxId = null,
+    DateOnly? ServiceStartDate = null,
+    DateOnly? ServiceEndDate = null,
     int? DriverUserId = null);  // Apenas admin: emitir em nome de outro motorista
 
 public sealed record PagedResponse<T>(
@@ -30,11 +33,14 @@ public sealed record ReceiptResponse(
     DateTime? StartTime,
     DateTime? EndTime,
     string? ServiceDates,
+    DateOnly? ServiceStartDate,
+    DateOnly? ServiceEndDate,
     string? IssuerName,
     string? IssuerPhone,
     string? IssuerEmail,
     string? DriverName,
-    ClientResponse Client,
+    string? PayerTaxId,
+    ClientResponse? Client,
     DateTime? CancelledAt,
     string? CancelReason);
 

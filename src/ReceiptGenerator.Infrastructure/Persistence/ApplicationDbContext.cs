@@ -49,16 +49,20 @@ public sealed class ApplicationDbContext : DbContext
             entity.Property(x => x.Description).HasMaxLength(1000).IsRequired();
             entity.Property(x => x.Amount).HasPrecision(18, 2).IsRequired();
             entity.Property(x => x.ServiceDates).HasMaxLength(100);
+            entity.Property(x => x.ServiceStartDate).HasColumnType("date");
+            entity.Property(x => x.ServiceEndDate).HasColumnType("date");
             entity.Property(x => x.IssuerName).HasMaxLength(200);
             entity.Property(x => x.IssuerPhone).HasMaxLength(50);
             entity.Property(x => x.IssuerEmail).HasMaxLength(200);
             entity.Property(x => x.DriverName).HasMaxLength(200);
+            entity.Property(x => x.PayerTaxId).HasMaxLength(18);
             entity.Property(x => x.CancelledAt);
             entity.Property(x => x.CancelReason).HasMaxLength(500);
             entity.HasOne(x => x.Client)
                 .WithMany()
                 .HasForeignKey(x => x.ClientId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
             entity.HasOne(x => x.User)
                 .WithMany()
                 .HasForeignKey(x => x.UserId)

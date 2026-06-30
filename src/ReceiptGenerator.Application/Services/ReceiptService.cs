@@ -70,7 +70,8 @@ public sealed class ReceiptService : IReceiptService
             return null;
         }
 
-        if (await _clients.GetByIdAndUserIdAsync(request.ClientId, driverUserId, cancellationToken).ConfigureAwait(false) is null)
+        if (request.ClientId.HasValue &&
+            await _clients.GetByIdAndUserIdAsync(request.ClientId.Value, driverUserId, cancellationToken).ConfigureAwait(false) is null)
         {
             return null;
         }
@@ -88,7 +89,10 @@ public sealed class ReceiptService : IReceiptService
             request.IssuerName,
             request.IssuerPhone,
             request.IssuerEmail,
-            driver.FullName);  // snapshot imutável do nome do motorista
+            driver.FullName,   // snapshot imutável do nome do motorista
+            request.PayerTaxId,
+            request.ServiceStartDate,
+            request.ServiceEndDate);
 
         receipt.SetNumber(nextNumber);
         await _receipts.AddAsync(receipt, cancellationToken).ConfigureAwait(false);
@@ -99,7 +103,11 @@ public sealed class ReceiptService : IReceiptService
     public async Task<bool> UpdateAsync(int id, int userId, ReceiptRequest request, CancellationToken cancellationToken = default)
     {
         var receipt = await _receipts.GetByIdAndUserIdAsync(id, userId, cancellationToken).ConfigureAwait(false);
-        if (receipt is null || await _clients.GetByIdAndUserIdAsync(request.ClientId, userId, cancellationToken).ConfigureAwait(false) is null)
+        if (receipt is null)
+            return false;
+
+        if (request.ClientId.HasValue &&
+            await _clients.GetByIdAndUserIdAsync(request.ClientId.Value, userId, cancellationToken).ConfigureAwait(false) is null)
         {
             return false;
         }
@@ -113,7 +121,10 @@ public sealed class ReceiptService : IReceiptService
             request.ServiceDates,
             request.IssuerName,
             request.IssuerPhone,
-            request.IssuerEmail);
+            request.IssuerEmail,
+            request.PayerTaxId,
+            request.ServiceStartDate,
+            request.ServiceEndDate);
 
         await _receipts.UpdateAsync(receipt, cancellationToken).ConfigureAwait(false);
         return true;
@@ -122,7 +133,11 @@ public sealed class ReceiptService : IReceiptService
     public async Task<bool> UpdateByAnyIdAsync(int id, ReceiptRequest request, CancellationToken cancellationToken = default)
     {
         var receipt = await _receipts.GetByIdAsync(id, cancellationToken).ConfigureAwait(false);
-        if (receipt is null || await _clients.GetByIdAndUserIdAsync(request.ClientId, receipt.UserId, cancellationToken).ConfigureAwait(false) is null)
+        if (receipt is null)
+            return false;
+
+        if (request.ClientId.HasValue &&
+            await _clients.GetByIdAndUserIdAsync(request.ClientId.Value, receipt.UserId, cancellationToken).ConfigureAwait(false) is null)
         {
             return false;
         }
@@ -136,7 +151,10 @@ public sealed class ReceiptService : IReceiptService
             request.ServiceDates,
             request.IssuerName,
             request.IssuerPhone,
-            request.IssuerEmail);
+            request.IssuerEmail,
+            request.PayerTaxId,
+            request.ServiceStartDate,
+            request.ServiceEndDate);
 
         await _receipts.UpdateAsync(receipt, cancellationToken).ConfigureAwait(false);
         return true;
@@ -187,9 +205,11 @@ public sealed class ReceiptService : IReceiptService
 
     private static ReceiptResponse Map(Receipt receipt)
     {
-        var client = receipt.Client is null
-            ? new ClientResponse(receipt.ClientId, string.Empty, string.Empty, string.Empty)
-            : new ClientResponse(receipt.Client.Id, receipt.Client.Name, receipt.Client.Address, receipt.Client.TaxId);
+        var client = receipt.Client is not null
+            ? new ClientResponse(receipt.Client.Id, receipt.Client.Name, receipt.Client.Address, receipt.Client.TaxId)
+            : receipt.ClientId.HasValue
+                ? new ClientResponse(receipt.ClientId.Value, string.Empty, string.Empty, string.Empty)
+                : null;
 
         return new ReceiptResponse(
             receipt.Id,
@@ -200,10 +220,13 @@ public sealed class ReceiptService : IReceiptService
             receipt.StartTime,
             receipt.EndTime,
             receipt.ServiceDates,
+            receipt.ServiceStartDate,
+            receipt.ServiceEndDate,
             receipt.IssuerName,
             receipt.IssuerPhone,
             receipt.IssuerEmail,
             receipt.DriverName,
+            receipt.PayerTaxId,
             client,
             receipt.CancelledAt,
             receipt.CancelReason);

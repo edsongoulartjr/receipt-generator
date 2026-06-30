@@ -8,7 +8,7 @@ public sealed class Receipt
     }
 
     public Receipt(
-        int clientId,
+        int? clientId,
         int userId,
         string description,
         decimal amount,
@@ -18,14 +18,19 @@ public sealed class Receipt
         string? issuerName = null,
         string? issuerPhone = null,
         string? issuerEmail = null,
-        string? driverName = null)
+        string? driverName = null,
+        string? payerTaxId = null,
+        DateOnly? serviceStartDate = null,
+        DateOnly? serviceEndDate = null)
     {
         Description = string.Empty;
-        ClientId = clientId > 0 ? clientId : throw new ArgumentOutOfRangeException(nameof(clientId));
+        if (clientId.HasValue && clientId.Value <= 0)
+            throw new ArgumentOutOfRangeException(nameof(clientId));
+        ClientId = clientId;
         UserId = userId > 0 ? userId : throw new ArgumentOutOfRangeException(nameof(userId));
         Date = DateTime.UtcNow;
         DriverName = Optional(driverName, 200);
-        Update(description, amount, startTime, endTime, serviceDates, issuerName, issuerPhone, issuerEmail);
+        Update(description, amount, startTime, endTime, serviceDates, issuerName, issuerPhone, issuerEmail, payerTaxId, serviceStartDate, serviceEndDate);
     }
 
     public int Id { get; private set; }
@@ -36,13 +41,16 @@ public sealed class Receipt
     public DateTime? StartTime { get; private set; }
     public DateTime? EndTime { get; private set; }
     public string? ServiceDates { get; private set; }
+    public DateOnly? ServiceStartDate { get; private set; }
+    public DateOnly? ServiceEndDate { get; private set; }
     public string? IssuerName { get; private set; }
     public string? IssuerPhone { get; private set; }
     public string? IssuerEmail { get; private set; }
     public string? DriverName { get; private set; }
+    public string? PayerTaxId { get; private set; }
     public DateTime? CancelledAt { get; private set; }
     public string? CancelReason { get; private set; }
-    public int ClientId { get; private set; }
+    public int? ClientId { get; private set; }
     public Client? Client { get; private set; }
     public int UserId { get; private set; }
     public User? User { get; private set; }
@@ -54,9 +62,11 @@ public sealed class Receipt
         Number = number > 0 ? number : throw new ArgumentOutOfRangeException(nameof(number));
     }
 
-    public void ChangeClient(int clientId)
+    public void ChangeClient(int? clientId)
     {
-        ClientId = clientId > 0 ? clientId : throw new ArgumentOutOfRangeException(nameof(clientId));
+        if (clientId.HasValue && clientId.Value <= 0)
+            throw new ArgumentOutOfRangeException(nameof(clientId));
+        ClientId = clientId;
     }
 
     public void Cancel(string? reason = null)
@@ -74,7 +84,10 @@ public sealed class Receipt
         string? serviceDates,
         string? issuerName,
         string? issuerPhone,
-        string? issuerEmail)
+        string? issuerEmail,
+        string? payerTaxId = null,
+        DateOnly? serviceStartDate = null,
+        DateOnly? serviceEndDate = null)
     {
         if (amount <= 0)
         {
@@ -86,14 +99,22 @@ public sealed class Receipt
             throw new ArgumentException("End time cannot be earlier than start time.", nameof(endTime));
         }
 
+        if (serviceStartDate.HasValue && serviceEndDate.HasValue && serviceEndDate < serviceStartDate)
+        {
+            throw new ArgumentException("Service end date cannot be earlier than start date.", nameof(serviceEndDate));
+        }
+
         Description = Required(description, nameof(description), 1000);
         Amount = amount;
         StartTime = startTime;
         EndTime = endTime;
         ServiceDates = Optional(serviceDates, 100);
+        ServiceStartDate = serviceStartDate;
+        ServiceEndDate = serviceEndDate;
         IssuerName = Optional(issuerName, 200);
         IssuerPhone = Optional(issuerPhone, 50);
         IssuerEmail = Optional(issuerEmail, 200);
+        PayerTaxId = Optional(payerTaxId, 18);
     }
 
     private static string Required(string value, string fieldName, int maxLength)

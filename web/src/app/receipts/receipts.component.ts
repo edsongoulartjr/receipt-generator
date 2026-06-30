@@ -7,6 +7,7 @@ import { ClientService, Client } from '../client.service';
 import { AuthService } from '../auth.service';
 import { UserService, User } from '../user.service';
 import { ShareService } from '../share.service';
+import { formatCpfCnpj } from '../utils/tax-id.utils';
 import { firstValueFrom } from 'rxjs';
 
 @Component({
@@ -40,7 +41,7 @@ export class ReceiptsComponent implements OnInit {
   resolvedClientId = 0;
   showNewClientPrompt = false;
 
-  serviceDateInput = ''; // YYYY-MM-DD (valor interno do <input type="date">)
+  payerTaxIdDisplay = '';
 
   showExtras = false;
   lastCreatedReceipt: Receipt | null = null;
@@ -170,20 +171,19 @@ export class ReceiptsComponent implements OnInit {
     if (match) {
       this.resolvedClientId = match.id!;
       this.showNewClientPrompt = false;
+      if (!this.payerTaxIdDisplay && match.taxId) {
+        this.payerTaxIdDisplay = formatCpfCnpj(match.taxId);
+        this.currentReceipt.payerTaxId = this.payerTaxIdDisplay;
+      }
     } else {
       this.resolvedClientId = 0;
       this.showNewClientPrompt = true;
     }
   }
 
-  onServiceDateChange(value: string): void {
-    this.serviceDateInput = value;
-    if (value) {
-      const [y, m, d] = value.split('-');
-      this.currentReceipt.serviceDates = `${d}/${m}/${y}`;
-    } else {
-      this.currentReceipt.serviceDates = '';
-    }
+  onPayerTaxIdChange(value: string): void {
+    this.payerTaxIdDisplay = formatCpfCnpj(value);
+    this.currentReceipt.payerTaxId = this.payerTaxIdDisplay || undefined;
   }
 
   async saveReceipt(): Promise<void> {
@@ -192,26 +192,24 @@ export class ReceiptsComponent implements OnInit {
     }
 
     this.isSubmitting = true;
-    let clientId = this.resolvedClientId;
+    let clientId: number | undefined = this.resolvedClientId || undefined;
 
-    if (clientId === 0) {
+    if (!clientId) {
       const name = this.clientNameInput.trim();
-      if (!name) {
-        this.isSubmitting = false;
-        return;
+      if (name) {
+        try {
+          const created = await firstValueFrom(
+            this.clientService.addClient({ name, address: '', taxId: '' })
+          );
+          clientId = created.id!;
+          this.clients.push(created);
+        } catch (err) {
+          console.error('Erro ao criar cliente', err);
+          this.isSubmitting = false;
+          return;
+        }
       }
-
-      try {
-        const created = await firstValueFrom(
-          this.clientService.addClient({ name, address: '', taxId: '' })
-        );
-        clientId = created.id!;
-        this.clients.push(created);
-      } catch (err) {
-        console.error('Erro ao criar cliente', err);
-        this.isSubmitting = false;
-        return;
-      }
+      // se nome também vazio: clientId permanece undefined → recibo sem nome
     }
 
     const payload = this.toApiPayload({ ...this.currentReceipt, clientId, driverUserId: this.selectedDriverId ?? undefined });
@@ -257,10 +255,10 @@ export class ReceiptsComponent implements OnInit {
       endTime: this.toTimeInput(receipt.endTime)
     };
     this.clientNameInput = receipt.client?.name ?? '';
-    this.resolvedClientId = receipt.clientId;
+    this.resolvedClientId = receipt.clientId ?? 0;
     this.showNewClientPrompt = false;
-    this.serviceDateInput = this.parseDateForInput(receipt.serviceDates ?? '');
-    this.showExtras = !!(receipt.startTime || receipt.endTime);
+    this.payerTaxIdDisplay = receipt.payerTaxId ? formatCpfCnpj(receipt.payerTaxId) : '';
+    this.showExtras = !!(receipt.startTime || receipt.endTime || receipt.serviceStartDate || receipt.serviceEndDate);
     this.amountDisplay = this.formatCurrency(receipt.amount);
     this.editingReceipt = true;
   }
@@ -268,7 +266,7 @@ export class ReceiptsComponent implements OnInit {
   cancelEdit(): void {
     this.currentReceipt = this.emptyReceipt();
     this.amountDisplay = '';
-    this.serviceDateInput = '';
+    this.payerTaxIdDisplay = '';
     this.editingReceipt = false;
     this.showExtras = false;
     this.selectedDriverId = null;
@@ -348,7 +346,7 @@ export class ReceiptsComponent implements OnInit {
   private resetForm(): void {
     this.currentReceipt = this.emptyReceipt();
     this.amountDisplay = '';
-    this.serviceDateInput = '';
+    this.payerTaxIdDisplay = '';
     this.showExtras = false;
     this.selectedDriverId = null;
     this.resetClientState();
@@ -362,33 +360,30 @@ export class ReceiptsComponent implements OnInit {
 
   private emptyReceipt(): Receipt {
     return {
-      clientId: 0,
+      clientId: undefined,
       description: 'Serviço de Táxi',
       amount: 0,
       startTime: '',
       endTime: '',
-      serviceDates: ''
+      serviceDates: '',
+      payerTaxId: undefined
     };
   }
 
   private toApiPayload(receipt: Receipt): Receipt {
     return {
       id: receipt.id,
-      clientId: receipt.clientId,
+      clientId: receipt.clientId || undefined,
       description: receipt.description,
       amount: receipt.amount,
       startTime: this.toDateTime(receipt.startTime),
       endTime: this.toDateTime(receipt.endTime),
-      serviceDates: receipt.serviceDates,
+      serviceDates: receipt.serviceDates || undefined,
+      serviceStartDate: receipt.serviceStartDate || undefined,
+      serviceEndDate: receipt.serviceEndDate || undefined,
+      payerTaxId: receipt.payerTaxId || undefined,
       driverUserId: receipt.driverUserId
     };
-  }
-
-  private parseDateForInput(serviceDates: string): string {
-    // Converte dd/MM/YYYY → YYYY-MM-DD para o <input type="date">
-    const match = serviceDates?.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-    if (!match) return '';
-    return `${match[3]}-${match[2]}-${match[1]}`;
   }
 
   private toDateTime(value?: string): string | undefined {

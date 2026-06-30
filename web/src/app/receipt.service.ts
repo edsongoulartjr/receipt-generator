@@ -31,7 +31,7 @@ export interface PagedResponse<T> {
 export interface Receipt {
   id?: number;
   number?: number;
-  clientId: number;
+  clientId?: number;
   client?: Client;
   description: string;
   amount: number;
@@ -39,10 +39,13 @@ export interface Receipt {
   startTime?: string;
   endTime?: string;
   serviceDates?: string;
+  serviceStartDate?: string;
+  serviceEndDate?: string;
   issuerName?: string;
   issuerPhone?: string;
   issuerEmail?: string;
   driverName?: string;
+  payerTaxId?: string;
   driverUserId?: number;
   cancelledAt?: string;
   cancelReason?: string;

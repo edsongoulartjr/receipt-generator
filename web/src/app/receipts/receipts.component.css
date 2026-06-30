@@ -176,6 +176,12 @@ h2 {
     color: #7a5200;
 }
 
+.optional-hint {
+    font-size: 0.78rem;
+    font-weight: normal;
+    color: #888;
+}
+
 .driver-display {
     margin: 8px 0 12px;
     font-size: 0.9rem;
