@@ -31,11 +31,12 @@ public sealed class ClientService : IClientService
     public async Task<ClientResponse?> CreateAsync(int userId, ClientRequest request, CancellationToken cancellationToken = default)
     {
         if (await _users.GetByIdAsync(userId, cancellationToken).ConfigureAwait(false) is null)
-        {
             return null;
-        }
 
-        var client = new Client(request.Name, request.Address, request.TaxId, userId);
+        var client = new Client(request.Name, request.Address, request.TaxId, userId,
+            request.ZipCode, request.Street, request.Number,
+            request.Complement, request.Neighborhood, request.City, request.State);
+
         await _clients.AddAsync(client, cancellationToken).ConfigureAwait(false);
         return Map(client);
     }
@@ -44,11 +45,12 @@ public sealed class ClientService : IClientService
     {
         var client = await _clients.GetByIdAndUserIdAsync(id, userId, cancellationToken).ConfigureAwait(false);
         if (client is null)
-        {
             return false;
-        }
 
-        client.Update(request.Name, request.Address, request.TaxId);
+        client.Update(request.Name, request.Address, request.TaxId,
+            request.ZipCode, request.Street, request.Number,
+            request.Complement, request.Neighborhood, request.City, request.State);
+
         await _clients.UpdateAsync(client, cancellationToken).ConfigureAwait(false);
         return true;
     }
@@ -57,13 +59,14 @@ public sealed class ClientService : IClientService
     {
         var client = await _clients.GetByIdAndUserIdAsync(id, userId, cancellationToken).ConfigureAwait(false);
         if (client is null)
-        {
             return false;
-        }
 
         await _clients.DeleteAsync(client, cancellationToken).ConfigureAwait(false);
         return true;
     }
 
-    private static ClientResponse Map(Client client) => new(client.Id, client.Name, client.Address, client.TaxId);
+    private static ClientResponse Map(Client client) => new(
+        client.Id, client.Name, client.Address, client.TaxId,
+        client.ZipCode, client.Street, client.Number,
+        client.Complement, client.Neighborhood, client.City, client.State);
 }

@@ -206,9 +206,12 @@ public sealed class ReceiptService : IReceiptService
     private static ReceiptResponse Map(Receipt receipt)
     {
         var client = receipt.Client is not null
-            ? new ClientResponse(receipt.Client.Id, receipt.Client.Name, receipt.Client.Address, receipt.Client.TaxId)
+            ? new ClientResponse(receipt.Client.Id, receipt.Client.Name, receipt.Client.Address, receipt.Client.TaxId,
+                receipt.Client.ZipCode, receipt.Client.Street, receipt.Client.Number,
+                receipt.Client.Complement, receipt.Client.Neighborhood, receipt.Client.City, receipt.Client.State)
             : receipt.ClientId.HasValue
-                ? new ClientResponse(receipt.ClientId.Value, string.Empty, string.Empty, string.Empty)
+                ? new ClientResponse(receipt.ClientId.Value, string.Empty, string.Empty, string.Empty,
+                    null, null, null, null, null, null, null)
                 : null;
 
         return new ReceiptResponse(

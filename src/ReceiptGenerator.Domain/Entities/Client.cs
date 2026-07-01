@@ -9,7 +9,9 @@ public sealed class Client
         TaxId = string.Empty;
     }
 
-    public Client(string name, string address, string taxId, int userId)
+    public Client(string name, string address, string taxId, int userId,
+        string? zipCode = null, string? street = null, string? number = null,
+        string? complement = null, string? neighborhood = null, string? city = null, string? state = null)
     {
         Name = string.Empty;
         Address = string.Empty;
@@ -18,32 +20,56 @@ public sealed class Client
         ChangeAddress(address);
         ChangeTaxId(taxId);
         UserId = userId > 0 ? userId : throw new ArgumentOutOfRangeException(nameof(userId));
+        ZipCode = Trim(zipCode);
+        Street = Trim(street);
+        Number = Trim(number);
+        Complement = Trim(complement);
+        Neighborhood = Trim(neighborhood);
+        City = Trim(city);
+        State = Trim(state)?.ToUpperInvariant();
     }
 
     public int Id { get; private set; }
     public string Name { get; private set; }
     public string Address { get; private set; }
     public string TaxId { get; private set; }
+    public string? ZipCode { get; private set; }
+    public string? Street { get; private set; }
+    public string? Number { get; private set; }
+    public string? Complement { get; private set; }
+    public string? Neighborhood { get; private set; }
+    public string? City { get; private set; }
+    public string? State { get; private set; }
     public int UserId { get; private set; }
     public User? User { get; private set; }
 
-    public void Update(string name, string address, string taxId)
+    public void Update(string name, string address, string taxId,
+        string? zipCode = null, string? street = null, string? number = null,
+        string? complement = null, string? neighborhood = null, string? city = null, string? state = null)
     {
         Rename(name);
         ChangeAddress(address);
         ChangeTaxId(taxId);
+        ZipCode = Trim(zipCode);
+        Street = Trim(street);
+        Number = Trim(number);
+        Complement = Trim(complement);
+        Neighborhood = Trim(neighborhood);
+        City = Trim(city);
+        State = Trim(state)?.ToUpperInvariant();
     }
 
     private void Rename(string name) => Name = Required(name, nameof(name), 200);
     private void ChangeAddress(string address) => Address = Optional(address, nameof(address), 500);
     private void ChangeTaxId(string taxId) => TaxId = Optional(taxId, nameof(taxId), 50);
 
+    private static string? Trim(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
     private static string Required(string value, string fieldName, int maxLength)
     {
         if (string.IsNullOrWhiteSpace(value))
-        {
             throw new ArgumentException($"{fieldName} is required.", fieldName);
-        }
 
         value = value.Trim();
         return value.Length > maxLength
@@ -54,9 +80,7 @@ public sealed class Client
     private static string Optional(string value, string fieldName, int maxLength)
     {
         if (string.IsNullOrWhiteSpace(value))
-        {
             return string.Empty;
-        }
 
         value = value.Trim();
         return value.Length > maxLength

@@ -37,6 +37,13 @@ public sealed class ApplicationDbContext : DbContext
             entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
             entity.Property(x => x.Address).HasMaxLength(500).IsRequired();
             entity.Property(x => x.TaxId).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.ZipCode).HasMaxLength(9);
+            entity.Property(x => x.Street).HasMaxLength(300);
+            entity.Property(x => x.Number).HasMaxLength(20);
+            entity.Property(x => x.Complement).HasMaxLength(100);
+            entity.Property(x => x.Neighborhood).HasMaxLength(100);
+            entity.Property(x => x.City).HasMaxLength(100);
+            entity.Property(x => x.State).HasMaxLength(2);
             entity.HasOne(x => x.User)
                 .WithMany()
                 .HasForeignKey(x => x.UserId)
