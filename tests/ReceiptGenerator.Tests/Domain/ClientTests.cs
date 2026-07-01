@@ -141,4 +141,100 @@ public sealed class ClientTests
         client.Address.Should().BeEmpty();
         client.TaxId.Should().BeEmpty();
     }
+
+    // -----------------------------------------------------------------------
+    // Address fields (ZipCode, Street, Number, Complement, Neighborhood, City, State)
+    // -----------------------------------------------------------------------
+
+    [Fact(DisplayName = "Client is created with all address fields correctly set")]
+    public void Constructor_WithAllAddressFields_SetsAddressFields()
+    {
+        var client = new Client("Empresa", "", "", 1,
+            zipCode: "13201-010", street: "Rua das Flores", number: "42",
+            complement: "Sala 5", neighborhood: "Centro", city: "Jundiai", state: "sp");
+
+        client.ZipCode.Should().Be("13201-010");
+        client.Street.Should().Be("Rua das Flores");
+        client.Number.Should().Be("42");
+        client.Complement.Should().Be("Sala 5");
+        client.Neighborhood.Should().Be("Centro");
+        client.City.Should().Be("Jundiai");
+        client.State.Should().Be("SP"); // uppercased
+    }
+
+    [Fact(DisplayName = "Client address fields are null when not provided")]
+    public void Constructor_WithoutAddressFields_AddressFieldsAreNull()
+    {
+        var client = new Client("Empresa", "", "", 1);
+
+        client.ZipCode.Should().BeNull();
+        client.Street.Should().BeNull();
+        client.Number.Should().BeNull();
+        client.Complement.Should().BeNull();
+        client.Neighborhood.Should().BeNull();
+        client.City.Should().BeNull();
+        client.State.Should().BeNull();
+    }
+
+    [Fact(DisplayName = "Client address fields are null when whitespace-only strings are provided")]
+    public void Constructor_WithWhitespaceAddressFields_SetsNull()
+    {
+        var client = new Client("Empresa", "", "", 1,
+            zipCode: "  ", street: "  ", number: "  ",
+            complement: "  ", neighborhood: "  ", city: "  ", state: "  ");
+
+        client.ZipCode.Should().BeNull();
+        client.Street.Should().BeNull();
+        client.Number.Should().BeNull();
+        client.Complement.Should().BeNull();
+        client.Neighborhood.Should().BeNull();
+        client.City.Should().BeNull();
+        client.State.Should().BeNull();
+    }
+
+    [Fact(DisplayName = "State is always stored in upper case")]
+    public void Constructor_WithLowercaseState_StoresUppercase()
+    {
+        var client = new Client("Empresa", "", "", 1, state: "sp");
+
+        client.State.Should().Be("SP");
+    }
+
+    [Fact(DisplayName = "Update sets all address fields when provided")]
+    public void Update_WithAddressFields_UpdatesAddressFields()
+    {
+        var client = new Client("Empresa", "", "", 1);
+
+        client.Update("Empresa", "", "",
+            zipCode: "13201-010", street: "Rua Nova", number: "100",
+            complement: "Apto 3", neighborhood: "Jardim", city: "Campinas", state: "sp");
+
+        client.ZipCode.Should().Be("13201-010");
+        client.Street.Should().Be("Rua Nova");
+        client.Number.Should().Be("100");
+        client.Complement.Should().Be("Apto 3");
+        client.Neighborhood.Should().Be("Jardim");
+        client.City.Should().Be("Campinas");
+        client.State.Should().Be("SP");
+    }
+
+    [Fact(DisplayName = "Update clears address fields when whitespace-only is provided")]
+    public void Update_WithWhitespaceAddressFields_ClearsAddressFields()
+    {
+        var client = new Client("Empresa", "", "", 1,
+            zipCode: "13201-010", street: "Rua A", number: "1",
+            complement: "A", neighborhood: "B", city: "C", state: "SP");
+
+        client.Update("Empresa", "", "",
+            zipCode: " ", street: " ", number: " ",
+            complement: " ", neighborhood: " ", city: " ", state: " ");
+
+        client.ZipCode.Should().BeNull();
+        client.Street.Should().BeNull();
+        client.Number.Should().BeNull();
+        client.Complement.Should().BeNull();
+        client.Neighborhood.Should().BeNull();
+        client.City.Should().BeNull();
+        client.State.Should().BeNull();
+    }
 }

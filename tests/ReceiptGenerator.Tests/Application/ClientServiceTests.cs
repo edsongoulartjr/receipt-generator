@@ -178,5 +178,52 @@ public sealed class ClientServiceTests
         result.Should().BeTrue();
         await _clients.Received(1).DeleteAsync(client, Arg.Any<CancellationToken>());
     }
+
+    // -----------------------------------------------------------------------
+    // Address fields mapping (ZipCode, Street, Number, etc.)
+    // -----------------------------------------------------------------------
+
+    [Fact(DisplayName = "Create maps address fields from request to the persisted client")]
+    public async Task CreateAsync_WithAddressFields_MapsAddressFieldsToResponse()
+    {
+        var user = new User("taxista01", "hash", UserRole.Driver);
+        _users.GetByIdAsync(10, Arg.Any<CancellationToken>()).Returns(user);
+
+        var request = new ClientRequest("Empresa", "Rua A, 10", "123",
+            ZipCode: "13201-010", Street: "Rua das Flores", Number: "42",
+            Complement: "Sala 5", Neighborhood: "Centro", City: "Jundiai", State: "SP");
+
+        var result = await _sut.CreateAsync(10, request);
+
+        result.Should().NotBeNull();
+        result!.ZipCode.Should().Be("13201-010");
+        result.Street.Should().Be("Rua das Flores");
+        result.Number.Should().Be("42");
+        result.Complement.Should().Be("Sala 5");
+        result.Neighborhood.Should().Be("Centro");
+        result.City.Should().Be("Jundiai");
+        result.State.Should().Be("SP");
+    }
+
+    [Fact(DisplayName = "Update passes address fields from request to the client entity")]
+    public async Task UpdateAsync_WithAddressFields_PassesAddressFieldsToEntity()
+    {
+        var client = new Client("Antigo", "", "", 10);
+        _clients.GetByIdAndUserIdAsync(1, 10, Arg.Any<CancellationToken>()).Returns(client);
+
+        var request = new ClientRequest("Novo", "", "",
+            ZipCode: "01310-100", Street: "Av. Paulista", Number: "1000",
+            Complement: null, Neighborhood: "Bela Vista", City: "Sao Paulo", State: "SP");
+
+        var result = await _sut.UpdateAsync(1, 10, request);
+
+        result.Should().BeTrue();
+        client.ZipCode.Should().Be("01310-100");
+        client.Street.Should().Be("Av. Paulista");
+        client.Number.Should().Be("1000");
+        client.Neighborhood.Should().Be("Bela Vista");
+        client.City.Should().Be("Sao Paulo");
+        client.State.Should().Be("SP");
+    }
 }
 

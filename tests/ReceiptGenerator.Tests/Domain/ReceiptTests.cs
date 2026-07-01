@@ -186,4 +186,153 @@ public sealed class ReceiptTests
         act.Should().Throw<ArgumentOutOfRangeException>()
             .WithParameterName("clientId");
     }
+
+    [Fact(DisplayName = "ChangeClient accepts null to remove the associated client")]
+    public void ChangeClient_WithNull_SetsClientIdToNull()
+    {
+        var receipt = new Receipt(1, 1, "Corrida", 50m);
+
+        receipt.ChangeClient(null);
+
+        receipt.ClientId.Should().BeNull();
+    }
+
+    // -----------------------------------------------------------------------
+    // SetNumber
+    // -----------------------------------------------------------------------
+
+    [Fact(DisplayName = "SetNumber stores a positive number")]
+    public void SetNumber_WithPositiveNumber_StoresNumber()
+    {
+        var receipt = new Receipt(1, 1, "Corrida", 50m);
+
+        receipt.SetNumber(42);
+
+        receipt.Number.Should().Be(42);
+    }
+
+    [Theory(DisplayName = "SetNumber throws when number is zero or negative")]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void SetNumber_WithNonPositiveNumber_Throws(int number)
+    {
+        var receipt = new Receipt(1, 1, "Corrida", 50m);
+
+        var act = () => receipt.SetNumber(number);
+
+        act.Should().Throw<ArgumentOutOfRangeException>()
+            .WithParameterName("number");
+    }
+
+    // -----------------------------------------------------------------------
+    // Cancel
+    // -----------------------------------------------------------------------
+
+    [Fact(DisplayName = "Cancel sets IsCancelled to true and records the cancellation time")]
+    public void Cancel_WhenNotCancelled_SetsCancelledAtAndIsCancelled()
+    {
+        var receipt = new Receipt(1, 1, "Corrida", 50m);
+        var before = DateTime.UtcNow;
+
+        receipt.Cancel();
+
+        receipt.IsCancelled.Should().BeTrue();
+        receipt.CancelledAt.Should().BeOnOrAfter(before);
+    }
+
+    [Fact(DisplayName = "Cancel stores the provided reason trimmed")]
+    public void Cancel_WithReason_StoresTrimmedReason()
+    {
+        var receipt = new Receipt(1, 1, "Corrida", 50m);
+
+        receipt.Cancel("  Emitido por engano  ");
+
+        receipt.CancelReason.Should().Be("Emitido por engano");
+    }
+
+    [Fact(DisplayName = "Cancel sets reason to null when whitespace-only reason is provided")]
+    public void Cancel_WithWhitespaceReason_SetsNullReason()
+    {
+        var receipt = new Receipt(1, 1, "Corrida", 50m);
+
+        receipt.Cancel("   ");
+
+        receipt.CancelReason.Should().BeNull();
+    }
+
+    [Fact(DisplayName = "Cancel is idempotent: calling twice does not update CancelledAt")]
+    public void Cancel_WhenAlreadyCancelled_DoesNotUpdateCancelledAt()
+    {
+        var receipt = new Receipt(1, 1, "Corrida", 50m);
+        receipt.Cancel("primeiro motivo");
+        var firstCancelledAt = receipt.CancelledAt;
+
+        receipt.Cancel("segundo motivo");
+
+        receipt.CancelledAt.Should().Be(firstCancelledAt);
+        receipt.CancelReason.Should().Be("primeiro motivo");
+    }
+
+    // -----------------------------------------------------------------------
+    // Update — service date edge cases
+    // -----------------------------------------------------------------------
+
+    [Fact(DisplayName = "Update throws when service end date is earlier than service start date")]
+    public void Update_WhenServiceEndDateIsBeforeServiceStartDate_Throws()
+    {
+        var receipt = new Receipt(1, 1, "Corrida", 50m);
+        var start = new DateOnly(2026, 6, 10);
+        var end = new DateOnly(2026, 6, 9);
+
+        var act = () => receipt.Update("Corrida", 50m, null, null, null, null, null, null,
+            serviceStartDate: start, serviceEndDate: end);
+
+        act.Should().Throw<ArgumentException>()
+            .WithParameterName("serviceEndDate");
+    }
+
+    [Fact(DisplayName = "Update accepts equal start and end dates for service dates")]
+    public void Update_WhenServiceStartDateEqualsServiceEndDate_DoesNotThrow()
+    {
+        var receipt = new Receipt(1, 1, "Corrida", 50m);
+        var date = new DateOnly(2026, 6, 10);
+
+        var act = () => receipt.Update("Corrida", 50m, null, null, null, null, null, null,
+            serviceStartDate: date, serviceEndDate: date);
+
+        act.Should().NotThrow();
+    }
+
+    [Fact(DisplayName = "Update accepts equal start and end times")]
+    public void Update_WhenStartTimeEqualsEndTime_DoesNotThrow()
+    {
+        var receipt = new Receipt(1, 1, "Corrida", 50m);
+        var time = DateTime.UtcNow;
+
+        var act = () => receipt.Update("Corrida", 50m, time, time, null, null, null, null);
+
+        act.Should().NotThrow();
+    }
+
+    [Fact(DisplayName = "Receipt can be created with null client id")]
+    public void Constructor_WithNullClientId_SetsClientIdToNull()
+    {
+        var receipt = new Receipt(clientId: null, userId: 1, description: "Corrida sem cliente", amount: 50m);
+
+        receipt.ClientId.Should().BeNull();
+    }
+
+    [Fact(DisplayName = "Update stores service start and end dates when both are provided")]
+    public void Update_WithServiceDates_StoresDates()
+    {
+        var receipt = new Receipt(1, 1, "Corrida", 50m);
+        var start = new DateOnly(2026, 1, 1);
+        var end = new DateOnly(2026, 1, 31);
+
+        receipt.Update("Corrida", 50m, null, null, null, null, null, null,
+            serviceStartDate: start, serviceEndDate: end);
+
+        receipt.ServiceStartDate.Should().Be(start);
+        receipt.ServiceEndDate.Should().Be(end);
+    }
 }

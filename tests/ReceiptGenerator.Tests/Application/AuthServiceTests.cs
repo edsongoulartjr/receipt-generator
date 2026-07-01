@@ -73,7 +73,7 @@ public sealed class AuthServiceTests
         result.Should().NotBeNull();
         result!.AccessToken.Should().Be("jwt-token");
         result.RefreshToken.Should().Be("opaque-refresh-token");
-        result.ExpiresIn.Should().Be(900);
+        result.ExpiresIn.Should().Be(3600);
     }
 
     [Fact(DisplayName = "Login calls the token generator exactly once when credentials are valid")]
@@ -135,6 +135,52 @@ public sealed class AuthServiceTests
         var result = await _sut.LogoutAsync(99);
 
         result.Should().BeFalse();
+    }
+
+    [Fact(DisplayName = "Refresh returns new tokens when token is valid and user is active")]
+    public async Task RefreshAsync_WhenTokenIsValidAndUserIsActive_ReturnsNewTokens()
+    {
+        var user = CreateUser(isActive: true);
+        // Simula token válido: o token bruto é "my-token", hash = "hashed-refresh-token"
+        user.SetRefreshToken("hashed-refresh-token", DateTime.UtcNow.AddDays(1));
+        _refreshTokenGenerator.Hash("my-token").Returns("hashed-refresh-token");
+        _users.GetByRefreshTokenHashAsync("hashed-refresh-token", Arg.Any<CancellationToken>())
+            .Returns(user);
+        _tokenGenerator.Generate(user).Returns("new-jwt-token");
+
+        var result = await _sut.RefreshAsync(new RefreshRequest("my-token"));
+
+        result.Should().NotBeNull();
+        result!.AccessToken.Should().Be("new-jwt-token");
+        result.RefreshToken.Should().Be("opaque-refresh-token");
+    }
+
+    [Fact(DisplayName = "Refresh returns null when the stored token is expired")]
+    public async Task RefreshAsync_WhenTokenIsExpired_ReturnsNull()
+    {
+        var user = CreateUser(isActive: true);
+        // Token expirado (no passado)
+        user.SetRefreshToken("hashed-refresh-token", DateTime.UtcNow.AddSeconds(-1));
+        _refreshTokenGenerator.Hash("my-token").Returns("hashed-refresh-token");
+        _users.GetByRefreshTokenHashAsync("hashed-refresh-token", Arg.Any<CancellationToken>())
+            .Returns(user);
+
+        var result = await _sut.RefreshAsync(new RefreshRequest("my-token"));
+
+        result.Should().BeNull();
+    }
+
+    [Fact(DisplayName = "Logout clears refresh token on the user entity before persisting")]
+    public async Task LogoutAsync_WhenUserExists_ClearsRefreshTokenOnEntity()
+    {
+        var user = CreateUser(isActive: true);
+        user.SetRefreshToken("some-hash", DateTime.UtcNow.AddDays(30));
+        _users.GetByIdAsync(user.Id, Arg.Any<CancellationToken>()).Returns(user);
+
+        await _sut.LogoutAsync(user.Id);
+
+        user.RefreshTokenHash.Should().BeNull();
+        user.RefreshTokenExpiry.Should().BeNull();
     }
 
     private static User CreateUser(bool isActive)

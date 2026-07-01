@@ -235,4 +235,151 @@ public sealed class ReceiptServiceTests
         result.Should().BeEquivalentTo(pdfBytes);
         _pdfGenerator.Received(1).Generate(receipt);
     }
+
+    // -----------------------------------------------------------------------
+    // CreateAsync — driver inativo e admin emitindo por outro driver
+    // -----------------------------------------------------------------------
+
+    [Fact(DisplayName = "Create returns null when the driver user does not exist")]
+    public async Task CreateAsync_WhenDriverNotFound_ReturnsNull()
+    {
+        _users.GetByIdAsync(10, Arg.Any<CancellationToken>()).Returns((User?)null);
+
+        var request = new ReceiptRequest(null, "Corrida", 50m, null, null, null, null, null, null, null);
+        var result = await _sut.CreateAsync(10, UserRole.Driver, request);
+
+        result.Should().BeNull();
+        await _receipts.DidNotReceive().AddAsync(Arg.Any<Receipt>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact(DisplayName = "Create returns null when the driver user is inactive")]
+    public async Task CreateAsync_WhenDriverIsInactive_ReturnsNull()
+    {
+        var driver = new User("motorista", "hash", UserRole.Driver, "Carlos");
+        driver.Deactivate();
+        _users.GetByIdAsync(10, Arg.Any<CancellationToken>()).Returns(driver);
+
+        var request = new ReceiptRequest(null, "Corrida", 50m, null, null, null, null, null, null, null);
+        var result = await _sut.CreateAsync(10, UserRole.Driver, request);
+
+        result.Should().BeNull();
+        await _receipts.DidNotReceive().AddAsync(Arg.Any<Receipt>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact(DisplayName = "Create uses DriverUserId when admin emits receipt on behalf of another driver")]
+    public async Task CreateAsync_WhenAdminSpecifiesDriverUserId_UsesDriverUserIdToCreateReceipt()
+    {
+        var driver = new User("motorista", "hash", UserRole.Driver, "Carlos");
+        var client = new Client("Empresa", "", "", 20);
+        _users.GetByIdAsync(20, Arg.Any<CancellationToken>()).Returns(driver);
+        _clients.GetByIdAndUserIdAsync(1, 20, Arg.Any<CancellationToken>()).Returns(client);
+        _receipts.GetNextNumberAsync(20, Arg.Any<CancellationToken>()).Returns(1);
+        _receipts.GetByIdAndUserIdAsync(Arg.Any<int>(), 20, Arg.Any<CancellationToken>())
+            .Returns((Receipt?)null);
+
+        // Admin (userId=99) emite em nome do motorista (driverUserId=20)
+        var request = new ReceiptRequest(1, "Corrida admin", 100m, null, null, null, null, null, null, null, DriverUserId: 20);
+        var result = await _sut.CreateAsync(99, UserRole.CoopAdmin, request);
+
+        result.Should().NotBeNull();
+        // Verifica que o repositório foi chamado para adicionar com o userId do motorista
+        await _receipts.Received(1).AddAsync(
+            Arg.Is<Receipt>(r => r.UserId == 20),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact(DisplayName = "Create ignores DriverUserId when requesting user is a Driver")]
+    public async Task CreateAsync_WhenDriverSpecifiesDriverUserId_UsesOwnUserId()
+    {
+        var driver = new User("motorista", "hash", UserRole.Driver, "Carlos");
+        _users.GetByIdAsync(10, Arg.Any<CancellationToken>()).Returns(driver);
+        _receipts.GetNextNumberAsync(10, Arg.Any<CancellationToken>()).Returns(1);
+        _receipts.GetByIdAndUserIdAsync(Arg.Any<int>(), 10, Arg.Any<CancellationToken>())
+            .Returns((Receipt?)null);
+
+        // Driver tenta especificar outro driverUserId=99, deve ser ignorado
+        var request = new ReceiptRequest(null, "Corrida", 50m, null, null, null, null, null, null, null, DriverUserId: 99);
+        var result = await _sut.CreateAsync(10, UserRole.Driver, request);
+
+        result.Should().NotBeNull();
+        await _receipts.Received(1).AddAsync(
+            Arg.Is<Receipt>(r => r.UserId == 10),
+            Arg.Any<CancellationToken>());
+    }
+
+    // -----------------------------------------------------------------------
+    // DeleteAsync — recibo já cancelado
+    // -----------------------------------------------------------------------
+
+    [Fact(DisplayName = "Delete returns false when the receipt is already cancelled")]
+    public async Task DeleteAsync_WhenReceiptIsAlreadyCancelled_ReturnsFalse()
+    {
+        var receipt = new Receipt(1, 10, "Corrida", 50m);
+        receipt.Cancel("motivo original");
+        _receipts.GetByIdAndUserIdAsync(1, 10, Arg.Any<CancellationToken>()).Returns(receipt);
+
+        var result = await _sut.DeleteAsync(1, 10);
+
+        result.Should().BeFalse();
+        await _receipts.DidNotReceive().CancelAsync(Arg.Any<Receipt>(), Arg.Any<string?>(), Arg.Any<CancellationToken>());
+    }
+
+    // -----------------------------------------------------------------------
+    // Map — client null vs client preenchido
+    // -----------------------------------------------------------------------
+
+    [Fact(DisplayName = "GetById returns response with null client when receipt has no client")]
+    public async Task GetByIdAsync_WhenReceiptHasNoClient_ReturnsResponseWithNullClient()
+    {
+        var receipt = new Receipt(clientId: null, userId: 10, description: "Avulso", amount: 50m);
+        _receipts.GetByIdAndUserIdAsync(1, 10, Arg.Any<CancellationToken>()).Returns(receipt);
+
+        var result = await _sut.GetByIdAsync(1, 10);
+
+        result.Should().NotBeNull();
+        result!.Client.Should().BeNull();
+    }
+
+    [Fact(DisplayName = "GetById returns response with stub client when ClientId is set but Client navigation is null")]
+    public async Task GetByIdAsync_WhenClientIdSetButNavigationNull_ReturnsStubClient()
+    {
+        // Simula o caso em que o ORM não carregou a navegação (Client == null) mas ClientId está preenchido
+        var receipt = new Receipt(clientId: 5, userId: 10, description: "Corrida", amount: 50m);
+        _receipts.GetByIdAndUserIdAsync(1, 10, Arg.Any<CancellationToken>()).Returns(receipt);
+
+        var result = await _sut.GetByIdAsync(1, 10);
+
+        result.Should().NotBeNull();
+        result!.Client.Should().NotBeNull();
+        result.Client!.Id.Should().Be(5);
+        result.Client.Name.Should().BeEmpty();
+    }
+
+    // -----------------------------------------------------------------------
+    // Paginação — TotalPages
+    // -----------------------------------------------------------------------
+
+    [Fact(DisplayName = "GetByUserId calculates TotalPages correctly for multiple pages")]
+    public async Task GetByUserIdAsync_WithMultiplePages_CalculatesTotalPagesCorrectly()
+    {
+        var list = new List<Receipt> { new(1, 10, "Corrida", 50m) };
+        _receipts.GetByUserIdAsync(10, 1, 5, Arg.Any<int?>(), Arg.Any<int?>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
+            .Returns(((IReadOnlyList<Receipt>)list, 11));
+
+        var result = await _sut.GetByUserIdAsync(10, 1, 5);
+
+        result.TotalPages.Should().Be(3); // ceil(11/5) = 3
+        result.TotalCount.Should().Be(11);
+    }
+
+    [Fact(DisplayName = "GetByUserId returns TotalPages of 1 when total count is zero")]
+    public async Task GetByUserIdAsync_WhenTotalCountIsZero_ReturnsTotalPagesOfOne()
+    {
+        _receipts.GetByUserIdAsync(10, 1, 20, Arg.Any<int?>(), Arg.Any<int?>(), Arg.Any<bool>(), Arg.Any<CancellationToken>())
+            .Returns(((IReadOnlyList<Receipt>)new List<Receipt>(), 0));
+
+        var result = await _sut.GetByUserIdAsync(10, 1, 20);
+
+        result.TotalPages.Should().Be(1);
+    }
 }
