@@ -49,6 +49,10 @@ export class LoginComponent {
       return 'Usuário ou senha inválidos.';
     }
 
+    if (error.status === 429) {
+      return 'Muitas tentativas de login. Aguarde um momento e tente novamente.';
+    }
+
     return error.error?.message || 'Não foi possível entrar no sistema. Tente novamente.';
   }
 }

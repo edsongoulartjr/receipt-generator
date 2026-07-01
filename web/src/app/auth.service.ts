@@ -96,27 +96,14 @@ export class AuthService {
   }
 
   getFullName(): string | null {
-    const token = this.getToken();
-    if (!token) return null;
-    try {
-      const payload = JSON.parse(atob(this.toBase64Url(token.split('.')[1])));
-      return payload['fullName'] || null;
-    } catch {
-      return null;
-    }
+    const payload = this.decodeJwtPayload();
+    return (payload?.['fullName'] as string) || null;
   }
 
   getUsername(): string | null {
-    const token = this.getToken();
-    if (!token) return null;
-    try {
-      const payload = JSON.parse(atob(this.toBase64Url(token.split('.')[1])));
-      return payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name']
-        ?? payload['name']
-        ?? null;
-    } catch {
-      return null;
-    }
+    const payload = this.decodeJwtPayload();
+    return ((payload?.['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name']
+      ?? payload?.['name']) as string) || null;
   }
 
   private sendLogin(credentials: { username: string; password: string }): Observable<AuthResponse> {
@@ -151,14 +138,18 @@ export class AuthService {
   }
 
   private getRoleFromToken(): string | null {
+    const payload = this.decodeJwtPayload();
+    return ((payload?.['role']
+      ?? payload?.['http://schemas.microsoft.com/ws/2008/06/identity/claims/role']) as string) || null;
+  }
+
+  private decodeJwtPayload(): Record<string, unknown> | null {
     const token = this.getToken();
     if (!token) return null;
-
     try {
-      const payload = JSON.parse(atob(this.toBase64Url(token.split('.')[1])));
-      return payload.role
-        ?? payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role']
-        ?? null;
+      const b64 = this.toBase64Url(token.split('.')[1]);
+      const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+      return JSON.parse(new TextDecoder().decode(bytes));
     } catch {
       return null;
     }

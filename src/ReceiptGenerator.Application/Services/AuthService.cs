@@ -8,8 +8,8 @@ namespace ReceiptGenerator.Application.Services;
 
 public sealed class AuthService : IAuthService
 {
-    private const int RefreshTokenExpiryDays = 30;
-    private const int AccessTokenExpirySeconds = 900; // 15 min — deve coincidir com JwtSettings:AccessTokenExpiryMinutes
+    private const int RefreshTokenExpiryDays = 180;
+    private const int AccessTokenExpirySeconds = 3600; // 60 min — deve coincidir com JwtSettings:AccessTokenExpiryMinutes
 
     private readonly IUserRepository _users;
     private readonly IPasswordHasher _passwordHasher;
