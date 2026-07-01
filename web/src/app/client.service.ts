@@ -8,6 +8,13 @@ export interface Client {
   name: string;
   address: string;
   taxId: string;
+  zipCode?: string;
+  street?: string;
+  number?: string;
+  complement?: string;
+  neighborhood?: string;
+  city?: string;
+  state?: string;
 }
 
 @Injectable({

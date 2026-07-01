@@ -1,45 +1,176 @@
 <div class="clients-container">
-    <h2>Clientes</h2>
+    <h2>Cadastro de Clientes</h2>
 
-    <div class="client-form">
-        <h3>{{ editingClient ? 'Editar Cliente' : 'Adicionar Cliente' }}</h3>
-        <form (ngSubmit)="saveClient()">
+    <!-- Formulário -->
+    <div class="client-form" [class.editing]="editingClient">
+        <div class="form-header">
+            <h3>{{ editingClient ? 'Editar Cliente' : 'Novo Cliente' }}</h3>
+            <span class="editing-indicator" *ngIf="editingClient" aria-live="polite">
+                Editando: <strong>{{ currentClient.name || '—' }}</strong>
+            </span>
+        </div>
+
+        <form #clientForm="ngForm" (ngSubmit)="saveClient()">
             <div class="form-group">
                 <label for="name">Nome</label>
-                <input type="text" id="name" [(ngModel)]="currentClient.name" name="name" required>
+                <input type="text" id="name" [(ngModel)]="currentClient.name" name="name"
+                    maxlength="200" required autocomplete="name">
             </div>
+
+            <!-- CEP -->
             <div class="form-group">
-                <label for="address">Endereço</label>
-                <input type="text" id="address" [(ngModel)]="currentClient.address" name="address" required>
+                <label for="zipCode">
+                    CEP
+                    <span class="cep-loading" *ngIf="cepStatus === 'loading'">Buscando...</span>
+                </label>
+                <input type="text" id="zipCode" inputmode="numeric"
+                    [value]="zipCode"
+                    (input)="onZipCodeChange($any($event.target).value)"
+                    name="zipCode"
+                    class="cep-input"
+                    placeholder="00000-000"
+                    maxlength="9"
+                    autocomplete="postal-code">
+                <p class="cep-hint error" *ngIf="cepStatus === 'not-found'">CEP não encontrado. Preencha o endereço manualmente.</p>
+                <p class="cep-hint error" *ngIf="cepStatus === 'error'">Não foi possível consultar o CEP. Preencha manualmente.</p>
             </div>
+
+            <!-- Logradouro -->
             <div class="form-group">
-                <label for="taxId">CPF/CNPJ</label>
+                <label for="street">Logradouro</label>
+                <input type="text" id="street" [(ngModel)]="street" name="street"
+                    placeholder="Rua, Avenida, Travessa..." maxlength="300" required
+                    autocomplete="street-address">
+            </div>
+
+            <!-- Número e Complemento -->
+            <div class="row">
+                <div class="form-group">
+                    <label for="number">Número</label>
+                    <input type="text" id="number" [(ngModel)]="number" name="number"
+                        placeholder="S/N" maxlength="20">
+                </div>
+                <div class="form-group">
+                    <label for="complement">Complemento</label>
+                    <input type="text" id="complement" [(ngModel)]="complement" name="complement"
+                        placeholder="Apto, Sala..." maxlength="100">
+                </div>
+            </div>
+
+            <!-- Bairro -->
+            <div class="form-group">
+                <label for="neighborhood">Bairro</label>
+                <input type="text" id="neighborhood" [(ngModel)]="neighborhood" name="neighborhood"
+                    maxlength="100" autocomplete="address-level3">
+            </div>
+
+            <!-- Cidade e UF -->
+            <div class="address-city-row">
+                <div class="form-group">
+                    <label for="city">Cidade</label>
+                    <input type="text" id="city" [(ngModel)]="city" name="city"
+                        maxlength="100" autocomplete="address-level2">
+                </div>
+                <div class="form-group">
+                    <label for="state">UF</label>
+                    <input type="text" id="state" [(ngModel)]="state" name="state"
+                        class="uf-input" maxlength="2" placeholder="SP"
+                        autocomplete="address-level1">
+                </div>
+            </div>
+
+            <!-- CPF/CNPJ -->
+            <div class="form-group">
+                <label for="taxId">CPF / CNPJ <span class="optional-hint">(opcional)</span></label>
                 <input type="text" id="taxId" [ngModel]="currentClient.taxId"
                     (ngModelChange)="onTaxIdChange($event)" name="taxId" inputmode="numeric"
-                    maxlength="18" placeholder="000.000.000-00 ou 00.000.000/0000-00" required>
+                    maxlength="18" placeholder="000.000.000-00 ou 00.000.000/0000-00">
             </div>
+
+            <p class="form-message error" *ngIf="formError" role="alert">{{ formError }}</p>
+
             <div class="form-actions">
-                <button type="submit">{{ editingClient ? 'Atualizar' : 'Adicionar' }}</button>
-                <button type="button" (click)="cancelEdit()" *ngIf="editingClient">Cancelar</button>
+                <button type="submit"
+                    [disabled]="clientForm.invalid || isSaving || (editingClient && !isDirty)"
+                    [title]="editingClient && !isDirty ? 'Nenhuma alteração foi feita' : ''">
+                    <span class="btn-spinner" *ngIf="isSaving"></span>
+                    {{ isSaving ? 'Salvando...' : (editingClient ? 'Atualizar' : 'Cadastrar') }}
+                </button>
+                <button type="button" class="btn-cancel" (click)="requestCancelEdit()" *ngIf="editingClient">
+                    Cancelar
+                </button>
             </div>
         </form>
     </div>
 
+    <!-- Lista de clientes -->
     <div class="clients-list">
         <h3>Clientes Cadastrados</h3>
-        <p *ngIf="clients.length === 0">Nenhum cliente cadastrado ainda.</p>
+        <div class="page-error" *ngIf="pageError" role="alert">
+            <span>{{ pageError }}</span>
+            <button type="button" (click)="loadClients()">Tentar novamente</button>
+        </div>
+        <p *ngIf="clients.length === 0 && !pageError">Nenhum cliente cadastrado ainda.</p>
         <ul>
-            <li *ngFor="let client of clients; trackBy: trackByClientId">
+            <li *ngFor="let client of clients; trackBy: trackByClientId"
+                [class.is-editing]="editingClient && client.id === currentClient.id">
                 <div class="client-info">
-                    <strong>{{ client.name }}</strong>
-                    <span>{{ client.taxId }}</span>
+                    <strong>
+                        {{ client.name }}
+                        <span class="editing-badge" *ngIf="editingClient && client.id === currentClient.id">
+                            Em edição
+                        </span>
+                    </strong>
+                    <span *ngIf="client.taxId">{{ client.taxId }}</span>
                     <small>{{ client.address }}</small>
                 </div>
                 <div class="client-actions">
-                    <button type="button" (click)="editClient(client)">Editar</button>
-                    <button type="button" (click)="deleteClient(client.id!)">Excluir</button>
+                    <button type="button" (click)="editClient(client)"
+                        [disabled]="editingClient && client.id !== currentClient.id">Editar</button>
+                    <button type="button" (click)="openDeleteClient(client)">Excluir</button>
                 </div>
             </li>
         </ul>
     </div>
+</div>
+
+<!-- Painel: confirmar cancelamento com alterações pendentes -->
+<div class="reset-overlay" *ngIf="pendingCancelEdit" (click)="dismissCancelEdit()"></div>
+<div class="reset-panel" [class.open]="pendingCancelEdit" role="dialog" aria-modal="true"
+    aria-labelledby="cancel-edit-title">
+    <div class="reset-panel-handle"></div>
+    <h4 id="cancel-edit-title">Descartar alterações?</h4>
+    <p class="reset-panel-hint">As alterações feitas em <strong>{{ currentClient.name }}</strong> não foram salvas e serão perdidas.</p>
+    <div class="reset-panel-actions">
+        <button type="button" class="btn btn-danger" (click)="confirmCancelEdit()">Descartar</button>
+        <button type="button" class="btn btn-secondary" (click)="dismissCancelEdit()">Continuar editando</button>
+    </div>
+</div>
+
+<!-- Painel: confirmar exclusão -->
+<div class="reset-overlay" *ngIf="pendingDeleteClient" (click)="cancelDeleteClient()"></div>
+<div class="reset-panel" [class.open]="pendingDeleteClient !== null" role="dialog" aria-modal="true"
+    aria-labelledby="delete-client-title">
+    <div class="reset-panel-handle"></div>
+    <h4 id="delete-client-title">Excluir cliente?</h4>
+    <p class="reset-panel-hint">
+        <strong>{{ pendingDeleteClient?.name }}</strong> será removido permanentemente.
+        Clientes com recibos vinculados não podem ser excluídos.
+    </p>
+    <p class="form-message error" *ngIf="pendingDeleteError" role="alert">{{ pendingDeleteError }}</p>
+    <div class="reset-panel-actions">
+        <button type="button" class="btn btn-danger" (click)="confirmDeleteClient()"
+            [disabled]="isDeletingClient">
+            <span class="btn-spinner btn-spinner--dark" *ngIf="isDeletingClient"></span>
+            {{ isDeletingClient ? 'Excluindo...' : 'Excluir' }}
+        </button>
+        <button type="button" class="btn btn-secondary" (click)="cancelDeleteClient()"
+            [disabled]="isDeletingClient">Cancelar</button>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" [class.success]="toastType === 'success'" [class.error]="toastType === 'error'"
+    *ngIf="toast" role="status" aria-live="polite" (click)="dismissToast()">
+    {{ toast }}
 </div>
