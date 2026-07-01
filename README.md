@@ -99,8 +99,9 @@ ReceiptGenerator/
 │       └── Security/                   # JwtTokenGenerator, RefreshTokenGenerator, BcryptPasswordHasher
 ├── tests/
 │   └── ReceiptGenerator.Tests/
-│       ├── Application/                # AuthService, ClientService, ReceiptService, ReportService
-│       └── Domain/                     # Client, Receipt
+│       ├── Application/                # AuthService, ClientService, ReceiptService, ReportService, UserService
+│       ├── Domain/                     # Client, Receipt, User, UserRole
+│       └── Validation/                 # Atributos de validação nos DTOs
 ├── web/                                # Frontend Angular
 │   ├── src/app/
 │   │   ├── clients/                    # CRUD de clientes
@@ -114,6 +115,7 @@ ReceiptGenerator/
 │   │   ├── user.service.ts             # Usuários e perfil
 │   │   ├── receipt.service.ts          # Recibos, PDF, relatório mensal
 │   │   ├── client.service.ts           # Clientes
+│   │   ├── cep.service.ts              # Consulta ViaCEP para preenchimento automático de endereço
 │   │   ├── share.service.ts            # Web Share API + fallback download
 │   │   └── auth.interceptor.ts         # Refresh automático de token
 │   └── android/                        # Projeto Android gerado pelo Capacitor
@@ -135,7 +137,7 @@ ReceiptGenerator/
   },
   "JwtSettings": {
     "Secret": "change-this-development-secret-with-at-least-32-characters",
-    "AccessTokenExpiryMinutes": 15
+    "AccessTokenExpiryMinutes": 60
   },
   "BootstrapAdmin": {
     "Enabled": false
@@ -231,9 +233,9 @@ dotnet user-secrets set "BootstrapAdmin:Enabled" "false" --project src/ReceiptGe
 ## Fluxo de autenticação
 
 ```
-1. POST /api/auth/login  →  { accessToken, refreshToken, expiresIn: 900 }
-   - accessToken: JWT válido por 15 minutos
-   - refreshToken: token opaco válido por 30 dias, armazenado como hash no banco
+1. POST /api/auth/login  →  { accessToken, refreshToken, expiresIn: 3600 }
+   - accessToken: JWT válido por 60 minutos
+   - refreshToken: token opaco válido por 180 dias, armazenado como hash no banco
 
 2. Todas as requisições autenticadas enviam:
    Authorization: Bearer {accessToken}
@@ -253,6 +255,8 @@ dotnet user-secrets set "BootstrapAdmin:Enabled" "false" --project src/ReceiptGe
 - `fullName` → nome completo (exibido no cabeçalho da aplicação)
 
 **Troca de senha:** ao alterar a senha via `PUT /api/users/me`, o refresh token é invalidado imediatamente, forçando novo login na próxima expiração do accessToken.
+
+**Rate limiting:** os endpoints `/api/auth/login` e `/api/auth/refresh` possuem limitação de taxa por IP — 5 req/min (janela deslizante) e 30 req/min (janela fixa), respectivamente. Exceder o limite retorna HTTP 429 com cabeçalho `Retry-After`.
 
 ---
 
@@ -303,10 +307,13 @@ Ao clicar em **Compartilhar**:
 ### Gestão de clientes
 
 CRUD completo de clientes (passageiros):
-- Campos: **Nome** (obrigatório), **Endereço**, **CPF/CNPJ**
+- Campos: **Nome** (obrigatório), **CEP** (com preenchimento automático), **Logradouro**, **Número**, **Complemento**, **Bairro**, **Cidade**, **UF**, **CPF/CNPJ** (opcional)
+- **CEP auto-fill**: ao digitar o CEP completo, os campos de logradouro, complemento, bairro, cidade e UF são preenchidos automaticamente via ViaCEP
 - Listagem com busca por nome via `<datalist>`
-- Edição e exclusão diretamente na lista
-- Clients são vinculados ao motorista — cada motorista vê apenas os seus
+- Formulário com indicador visual de edição (borda amarela), dirty tracking e confirmação ao cancelar com alterações pendentes
+- Exclusão via painel de confirmação (bottom sheet)
+- Toast de feedback após salvar ou excluir
+- Clientes são vinculados ao motorista — cada motorista vê apenas os seus
 
 ### Perfil do usuário
 
@@ -325,7 +332,7 @@ Na tela **Usuários**, admins podem:
 - Listar todos os usuários com nome, login, perfil e status
 - Criar novos usuários (username, senha, perfil, nome completo)
 - Ativar / desativar usuários
-- **Redefinir a senha** de qualquer usuário sem precisar da senha atual (via prompt)
+- **Redefinir a senha** de qualquer usuário sem precisar da senha atual (via painel bottom sheet)
 
 ### Relatório mensal
 
@@ -345,8 +352,8 @@ Disponível para **todos os perfis** (motoristas veem apenas os próprios dados)
 
 | Método | Rota | Descrição |
 |---|---|---|
-| POST | `/api/auth/login` | Login; retorna `accessToken`, `refreshToken` e `expiresIn` (900s) |
-| POST | `/api/auth/refresh` | Renova o par de tokens usando o refresh token |
+| POST | `/api/auth/login` | Login; retorna `accessToken`, `refreshToken` e `expiresIn` (3600s). Rate limit: 5 req/min por IP |
+| POST | `/api/auth/refresh` | Renova o par de tokens usando o refresh token. Rate limit: 30 req/min por IP |
 | POST | `/api/auth/logout` | Revoga o refresh token no servidor; requer autenticação |
 
 ### Perfil — `GET|PUT /api/users/me` (qualquer perfil autenticado)
@@ -430,7 +437,7 @@ Fontes embutidas no assembly (sem dependência do sistema operacional):
 | Tabela | Colunas relevantes |
 |---|---|
 | `Users` | `Id`, `Username` (único), `PasswordHash`, `FullName`, `Role`, `IsActive`, `Phone`, `Email`, `UpdatedAt`, `RefreshTokenHash`, `RefreshTokenExpiry` |
-| `Clients` | `Id`, `Name`, `Address`, `TaxId`, `UserId` (FK → Users CASCADE) |
+| `Clients` | `Id`, `Name`, `Address`, `TaxId`, `ZipCode`, `Street`, `Number`, `Complement`, `Neighborhood`, `City`, `State`, `UserId` (FK → Users CASCADE) |
 | `Receipts` | `Id`, `Number`, `Date`, `Description`, `Amount`, `StartTime`, `EndTime`, `ServiceDates`, `IssuerName`, `IssuerPhone`, `IssuerEmail`, `DriverName`, `CancelledAt`, `CancelReason`, `ClientId` (FK RESTRICT), `UserId` (FK RESTRICT) |
 
 ### Índices notáveis
@@ -450,6 +457,7 @@ Fontes embutidas no assembly (sem dependência do sistema operacional):
 | `AddReceiptDateIndex` | Substitui índice simples por índice composto `(UserId, Date DESC)` |
 | `AddUserFullName` | `FullName` (varchar 200) em Users |
 | `AddUserContactAndReceiptCancellation` | `Phone`, `Email`, `UpdatedAt` em Users; `CancelledAt`, `CancelReason` em Receipts |
+| `AddClientAddressFields` | `ZipCode`, `Street`, `Number`, `Complement`, `Neighborhood`, `City`, `State` (nullable) em Clients |
 
 Para aplicar todas as migrations pendentes:
 
@@ -514,16 +522,20 @@ Sobe PostgreSQL 16, a API .NET e o frontend Angular em três contêineres. Acess
 dotnet test tests/ReceiptGenerator.Tests/ReceiptGenerator.Tests.csproj
 ```
 
-Suite atual: **69 testes** cobrindo camadas de domínio e aplicação.
+Suite atual: **193 testes** cobrindo camadas de domínio, aplicação e validação de DTOs.
 
 | Arquivo | Camada testada |
 |---|---|
-| `AuthServiceTests.cs` | Login, refresh, logout — validação de credenciais e tokens |
-| `ClientServiceTests.cs` | CRUD de clientes — ownership e validações |
-| `ReceiptServiceTests.cs` | Criação, atualização, cancelamento e geração de PDF |
-| `ReportServiceTests.cs` | Agrupamento mensal e escopo por motorista |
-| `ClientTests.cs` | Regras do domínio — validações da entidade Client |
-| `ReceiptTests.cs` | Regras do domínio — validações de Amount, datas, cancelamento |
+| `Application/AuthServiceTests.cs` | Login, refresh, logout — validação de credenciais e tokens |
+| `Application/ClientServiceTests.cs` | CRUD de clientes — ownership, validações e campos de endereço |
+| `Application/ReceiptServiceTests.cs` | Criação, atualização, cancelamento, PDF e lógica de admin/driver |
+| `Application/ReportServiceTests.cs` | Agrupamento mensal e escopo por motorista |
+| `Application/UserServiceTests.cs` | CRUD de usuários, activate/deactivate, perfil, reset de senha |
+| `Domain/ClientTests.cs` | Entidade Client — validações, campos de endereço, Update |
+| `Domain/ReceiptTests.cs` | Entidade Receipt — Amount, datas, SetNumber, Cancel |
+| `Domain/UserTests.cs` | Entidade User — construção, roles, refresh token, perfil |
+| `Domain/UserRoleTests.cs` | UserRole estático — IsValid, IsAdmin, case-sensitivity |
+| `Validation/DtoValidationTests.cs` | Atributos [Required], [MaxLength], [Range] nos DTOs via reflection |
 
 Para coleta de cobertura (threshold mínimo de 75%):
 
@@ -631,3 +643,8 @@ Melhorias planejadas em `MELHORIAS.md`, organizadas por prioridade:
 - Campo `UpdatedAt` na entidade `User` ✅
 - Exportação do relatório em CSV ✅
 - Edição de clientes na interface ✅
+- Campos estruturados de endereço no cadastro de clientes (logradouro, número, complemento, bairro, cidade, UF, CEP) ✅
+- Preenchimento automático de endereço por CEP via ViaCEP ✅
+- Rate limiting em login e refresh (proteção contra força bruta) ✅
+- Redefinição de senha via painel bottom sheet (sem window.prompt) ✅
+- Suíte de testes expandida para 193 testes unitários ✅
