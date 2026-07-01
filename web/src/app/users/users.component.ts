@@ -20,6 +20,11 @@ export class UsersComponent implements OnInit {
   currentUser: CreateUserRequest = this.emptyUser();
   errorMessage = '';
   successMessage = '';
+  loadError = '';
+
+  pendingResetUser: User | null = null;
+  pendingResetPassword = '';
+  pendingResetError = '';
 
   constructor(private userService: UserService, public authService: AuthService) { }
 
@@ -34,11 +39,12 @@ export class UsersComponent implements OnInit {
   }
 
   loadUsers(): void {
+    this.loadError = '';
     this.userService.getUsers()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (users) => { this.users = users; },
-        error: (err) => { console.error('Erro ao buscar usuários', err); }
+        error: () => { this.loadError = 'Não foi possível carregar os usuários. Tente novamente.'; }
       });
   }
 
@@ -62,44 +68,58 @@ export class UsersComponent implements OnInit {
   }
 
   activate(user: User): void {
+    this.errorMessage = '';
     this.userService.activateUser(user.id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => this.loadUsers(),
-        error: (err) => console.error('Erro ao ativar usuário', err)
+        error: () => { this.errorMessage = `Não foi possível ativar "${user.fullName || user.username}". Tente novamente.`; }
       });
   }
 
   deactivate(user: User): void {
+    this.errorMessage = '';
     this.userService.deactivateUser(user.id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => this.loadUsers(),
-        error: (err) => console.error('Erro ao desativar usuário', err)
+        error: () => { this.errorMessage = `Não foi possível desativar "${user.fullName || user.username}". Tente novamente.`; }
       });
   }
 
-  resetPassword(user: User): void {
-    const newPassword = window.prompt(`Nova senha para "${user.fullName || user.username}" (mínimo 6 caracteres):`);
-    if (!newPassword) return;
-    if (newPassword.length < 6) {
-      alert('A senha deve ter pelo menos 6 caracteres.');
+  openResetPassword(user: User): void {
+    this.pendingResetUser = user;
+    this.pendingResetPassword = '';
+    this.pendingResetError = '';
+  }
+
+  confirmResetPassword(): void {
+    const user = this.pendingResetUser;
+    if (!user) return;
+
+    if (this.pendingResetPassword.length < 6) {
+      this.pendingResetError = 'A senha deve ter pelo menos 6 caracteres.';
       return;
     }
 
-    this.userService.resetPassword(user.id, newPassword)
+    this.userService.resetPassword(user.id, this.pendingResetPassword)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
+          this.pendingResetUser = null;
           this.successMessage = `Senha de "${user.fullName || user.username}" redefinida com sucesso.`;
           this.errorMessage = '';
         },
-        error: (err) => {
-          console.error('Erro ao redefinir senha', err);
-          this.errorMessage = 'Não foi possível redefinir a senha. Tente novamente.';
-          this.successMessage = '';
+        error: () => {
+          this.pendingResetError = 'Não foi possível redefinir a senha. Tente novamente.';
         }
       });
+  }
+
+  cancelResetPassword(): void {
+    this.pendingResetUser = null;
+    this.pendingResetPassword = '';
+    this.pendingResetError = '';
   }
 
   trackByUserId(_index: number, user: User): number {

@@ -38,7 +38,11 @@
 
     <div class="users-list">
         <h3>Usuários Cadastrados</h3>
-        <p *ngIf="users.length === 0">Nenhum usuário cadastrado.</p>
+        <div class="page-error" *ngIf="loadError" role="alert">
+            <span>{{ loadError }}</span>
+            <button type="button" (click)="loadUsers()">Tentar novamente</button>
+        </div>
+        <p *ngIf="users.length === 0 && !loadError">Nenhum usuário cadastrado.</p>
 
         <div class="user-cards" *ngIf="users.length > 0">
             <article class="user-card" *ngFor="let user of users; trackBy: trackByUserId">
@@ -76,12 +80,32 @@
                         <button type="button" class="btn btn-danger btn-sm" *ngIf="user.isActive" (click)="deactivate(user)">
                             Desativar
                         </button>
-                        <button type="button" class="btn btn-secondary btn-sm" (click)="resetPassword(user)">
+                        <button type="button" class="btn btn-secondary btn-sm" (click)="openResetPassword(user)">
                             Reset senha
                         </button>
                     </td>
                 </tr>
             </tbody>
         </table>
+    </div>
+</div>
+
+<!-- Painel de redefinição de senha -->
+<div class="reset-overlay" *ngIf="pendingResetUser" (click)="cancelResetPassword()"></div>
+<div class="reset-panel" [class.open]="pendingResetUser !== null" role="dialog" aria-modal="true"
+    aria-labelledby="reset-panel-title">
+    <div class="reset-panel-handle"></div>
+    <h4 id="reset-panel-title">Redefinir senha de {{ pendingResetUser?.fullName || pendingResetUser?.username }}</h4>
+    <p class="reset-panel-hint">Digite a nova senha e repasse ao motorista pessoalmente.</p>
+    <div class="form-group">
+        <label for="newPassword">Nova senha</label>
+        <input type="password" id="newPassword" [(ngModel)]="pendingResetPassword" name="newPassword"
+            class="form-control" placeholder="Mínimo 6 caracteres" minlength="6" maxlength="100"
+            autocomplete="new-password">
+    </div>
+    <p class="form-message error" *ngIf="pendingResetError">{{ pendingResetError }}</p>
+    <div class="reset-panel-actions">
+        <button type="button" class="btn btn-primary" (click)="confirmResetPassword()">Confirmar</button>
+        <button type="button" class="btn btn-secondary" (click)="cancelResetPassword()">Cancelar</button>
     </div>
 </div>
