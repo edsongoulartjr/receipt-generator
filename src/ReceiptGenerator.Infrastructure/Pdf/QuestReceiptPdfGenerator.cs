@@ -114,14 +114,18 @@ public sealed class QuestReceiptPdfGenerator : IReceiptPdfGenerator
                     // ── LINHA AMARELA ─────────────────────────────────────────
                     column.Item().LineHorizontal(2).LineColor("#f2d500");
 
-                    // ── BANDA DE VALOR ────────────────────────────────────────
-                    column.Item().Background("#006f72").Padding(12).Column(valCol =>
+                    // ── VALOR ────────────────────────────────────────────────
+                    column.Item().Row(valRow =>
                     {
-                        valCol.Item().Text("VALOR RECEBIDO")
-                            .FontSize(8).FontColor("#a8d8d6");
-                        valCol.Item().PaddingTop(2)
-                            .Text(receipt.Amount.ToString("C", Brazil))
-                            .Bold().FontSize(24).FontColor(Colors.White);
+                        valRow.RelativeItem();
+                        valRow.AutoItem().Background("#006f72").PaddingVertical(10).PaddingHorizontal(20).Column(valCol =>
+                        {
+                            valCol.Item().AlignRight().Text("VALOR RECEBIDO")
+                                .FontSize(7).Bold().FontColor("#a8d8d6");
+                            valCol.Item().PaddingTop(4).AlignRight()
+                                .Text(receipt.Amount.ToString("C", Brazil))
+                                .Bold().FontSize(20).FontColor(Colors.White);
+                        });
                     });
 
                     // ── DECLARAÇÃO ────────────────────────────────────────────
@@ -132,7 +136,7 @@ public sealed class QuestReceiptPdfGenerator : IReceiptPdfGenerator
 
                         if (!string.IsNullOrWhiteSpace(clientName))
                         {
-                            text.Span("Recebemos de ").SemiBold();
+                            text.Span("Recebemos de ");
                             text.Span(clientName).Bold();
 
                             if (!string.IsNullOrWhiteSpace(taxId))
@@ -229,7 +233,7 @@ public sealed class QuestReceiptPdfGenerator : IReceiptPdfGenerator
                     column.Item().PaddingTop(6).LineHorizontal(1).LineColor(Colors.Grey.Lighten1);
 
                     column.Item().AlignCenter()
-                        .Text($"Documento emitido eletronicamente  ·  {issuedAt:dd/MM/yyyy HH:mm}")
+                        .Text($"Documento emitido eletronicamente  ·  {issuedAt:dd/MM/yyyy}")
                         .FontSize(7).FontColor(Colors.Grey.Darken1).Italic();
                 });
             });
@@ -324,13 +328,13 @@ public sealed class QuestReceiptPdfGenerator : IReceiptPdfGenerator
 
         var millions = number / 1_000_000;
         var remainder = number % 1_000_000;
-        var millionText = millions == 1 ? "um milhao" : $"{NumberToWords(millions)} milhoes";
+        var millionText = millions == 1 ? "um milhão" : $"{NumberToWords(millions)} milhões";
         return remainder == 0 ? millionText : $"{millionText} e {NumberToWords(remainder)}";
     }
 
     private static string HundredsToWords(int number)
     {
-        string[] units = ["", "um", "dois", "tres", "quatro", "cinco", "seis", "sete", "oito", "nove"];
+        string[] units = ["", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove"];
         string[] teens = ["dez", "onze", "doze", "treze", "quatorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove"];
         string[] tens = ["", "", "vinte", "trinta", "quarenta", "cinquenta", "sessenta", "setenta", "oitenta", "noventa"];
         string[] hundreds = ["", "cento", "duzentos", "trezentos", "quatrocentos", "quinhentos", "seiscentos", "setecentos", "oitocentos", "novecentos"];
