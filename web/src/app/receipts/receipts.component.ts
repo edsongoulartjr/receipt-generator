@@ -37,11 +37,21 @@ export class ReceiptsComponent implements OnInit {
   isSubmitting = false;
   isLoadingPage = false;
 
+  pendingDeleteReceipt: Receipt | null = null;
+  pendingDeleteReason = '';
+
+  pageError = '';
+  formError = '';
+  driversLoadError = '';
+
   clientNameInput = '';
   resolvedClientId = 0;
   showNewClientPrompt = false;
 
   payerTaxIdDisplay = '';
+
+  private cachedIssuerPhone = '';
+  private cachedIssuerEmail = '';
 
   showExtras = false;
   lastCreatedReceipt: Receipt | null = null;
@@ -89,12 +99,12 @@ export class ReceiptsComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (user) => {
-          if (!this.currentReceipt.issuerPhone && user.phone) {
-            this.currentReceipt.issuerPhone = user.phone;
-          }
-          if (!this.currentReceipt.issuerEmail && user.email) {
-            this.currentReceipt.issuerEmail = user.email;
-          }
+          this.cachedIssuerPhone = user.phone ?? '';
+          this.cachedIssuerEmail = user.email ?? '';
+          if (!this.currentReceipt.issuerPhone)
+            this.currentReceipt.issuerPhone = this.cachedIssuerPhone;
+          if (!this.currentReceipt.issuerEmail)
+            this.currentReceipt.issuerEmail = this.cachedIssuerEmail;
         },
         error: () => { /* silently ignore — profile is optional context */ }
       });
@@ -105,7 +115,7 @@ export class ReceiptsComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (data) => { this.drivers = data; },
-        error: (err) => { console.error('Erro ao buscar motoristas', err); }
+        error: () => { this.driversLoadError = 'Não foi possível carregar a lista de motoristas. Recarregue a página.'; }
       });
   }
 
@@ -114,12 +124,13 @@ export class ReceiptsComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (data) => { this.clients = data; },
-        error: (err) => { console.error('Erro ao buscar clientes', err); }
+        error: () => { /* autocomplete fica vazio — não bloqueia o fluxo principal */ }
       });
   }
 
   loadReceipts(): void {
     this.isLoadingPage = true;
+    this.pageError = '';
     this.receiptService.getReceipts(this.currentPage, this.pageSize, this.filterMonth, this.filterYear)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
@@ -129,8 +140,8 @@ export class ReceiptsComponent implements OnInit {
           this.totalCount = data.totalCount;
           this.isLoadingPage = false;
         },
-        error: (err) => {
-          console.error('Erro ao buscar recibos', err);
+        error: () => {
+          this.pageError = 'Não foi possível carregar os recibos. Verifique sua conexão e tente novamente.';
           this.isLoadingPage = false;
         }
       });
@@ -192,6 +203,7 @@ export class ReceiptsComponent implements OnInit {
     }
 
     this.isSubmitting = true;
+    this.formError = '';
     let clientId: number | undefined = this.resolvedClientId || undefined;
 
     if (!clientId) {
@@ -199,12 +211,12 @@ export class ReceiptsComponent implements OnInit {
       if (name) {
         try {
           const created = await firstValueFrom(
-            this.clientService.addClient({ name, address: '', taxId: '' })
+            this.clientService.addClient({ name, address: '', taxId: this.payerTaxIdDisplay || '' })
           );
           clientId = created.id!;
           this.clients.push(created);
-        } catch (err) {
-          console.error('Erro ao criar cliente', err);
+        } catch {
+          this.setFormError('Não foi possível cadastrar o cliente. Tente novamente.');
           this.isSubmitting = false;
           return;
         }
@@ -223,9 +235,9 @@ export class ReceiptsComponent implements OnInit {
             this.loadReceipts();
             this.cancelEdit();
           },
-          error: (err) => {
+          error: () => {
             this.isSubmitting = false;
-            console.error('Erro ao atualizar recibo', err);
+            this.setFormError('Não foi possível atualizar o recibo. Tente novamente.');
           }
         });
       return;
@@ -241,9 +253,9 @@ export class ReceiptsComponent implements OnInit {
           this.loadReceipts();
           this.resetForm();
         },
-        error: (err) => {
+        error: () => {
           this.isSubmitting = false;
-          console.error('Erro ao criar recibo', err);
+          this.setFormError('Não foi possível emitir o recibo. Verifique sua conexão e tente novamente.');
         }
       });
   }
@@ -265,11 +277,13 @@ export class ReceiptsComponent implements OnInit {
 
   cancelEdit(): void {
     this.currentReceipt = this.emptyReceipt();
+    this.applyIssuerCache();
     this.amountDisplay = '';
     this.payerTaxIdDisplay = '';
     this.editingReceipt = false;
     this.showExtras = false;
     this.selectedDriverId = null;
+    this.formError = '';
     this.resetClientState();
   }
 
@@ -284,16 +298,27 @@ export class ReceiptsComponent implements OnInit {
     this.lastCreatedReceipt = null;
   }
 
-  deleteReceipt(id: number): void {
-    const reason = window.prompt('Motivo do cancelamento (opcional):') ?? undefined;
-    if (reason === undefined) return;
+  deleteReceipt(receipt: Receipt): void {
+    this.pendingDeleteReceipt = receipt;
+    this.pendingDeleteReason = '';
+  }
 
-    this.receiptService.deleteReceipt(id, reason || undefined)
+  confirmDelete(): void {
+    const receipt = this.pendingDeleteReceipt;
+    if (!receipt?.id) return;
+    this.pendingDeleteReceipt = null;
+
+    this.receiptService.deleteReceipt(receipt.id, this.pendingDeleteReason.trim() || undefined)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => { this.currentPage = 1; this.loadReceipts(); },
-        error: (err) => { console.error('Erro ao cancelar recibo', err); }
+        error: () => { this.setFeedback('Não foi possível cancelar o recibo. Tente novamente.'); }
       });
+  }
+
+  cancelPendingDelete(): void {
+    this.pendingDeleteReceipt = null;
+    this.pendingDeleteReason = '';
   }
 
   onAmountInput(event: Event): void {
@@ -345,11 +370,17 @@ export class ReceiptsComponent implements OnInit {
 
   private resetForm(): void {
     this.currentReceipt = this.emptyReceipt();
+    this.applyIssuerCache();
     this.amountDisplay = '';
     this.payerTaxIdDisplay = '';
     this.showExtras = false;
     this.selectedDriverId = null;
     this.resetClientState();
+  }
+
+  private applyIssuerCache(): void {
+    if (this.cachedIssuerPhone) this.currentReceipt.issuerPhone = this.cachedIssuerPhone;
+    if (this.cachedIssuerEmail) this.currentReceipt.issuerEmail = this.cachedIssuerEmail;
   }
 
   private resetClientState(): void {
@@ -423,6 +454,11 @@ export class ReceiptsComponent implements OnInit {
   private setFeedback(message: string): void {
     this.shareFeedback = message;
     setTimeout(() => { this.shareFeedback = ''; }, 12000);
+  }
+
+  private setFormError(message: string): void {
+    this.formError = message;
+    setTimeout(() => document.getElementById('form-error')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
   }
 
 }

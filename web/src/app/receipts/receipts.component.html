@@ -56,7 +56,8 @@
                 <!-- Seleção de motorista — visível apenas para admins ao criar novo recibo -->
                 <div class="form-section" *ngIf="authService.isAdminOrAbove() && !editingReceipt">
                     <h4>Motorista</h4>
-                    <div class="form-group">
+                    <p class="form-message error" *ngIf="driversLoadError" role="alert">{{ driversLoadError }}</p>
+                    <div class="form-group" *ngIf="!driversLoadError">
                         <label for="driverSelect">Motorista responsável</label>
                         <select id="driverSelect" [(ngModel)]="selectedDriverId" name="driverSelect"
                             class="form-control" required>
@@ -114,6 +115,7 @@
                     </div>
                 </div>
 
+                <p id="form-error" class="form-message error" *ngIf="formError" role="alert">{{ formError }}</p>
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary" [disabled]="isSubmitting">{{ isSubmitting ? 'Salvando...' : (editingReceipt ? 'Atualizar' : 'Emitir Recibo') }}</button>
                     <button type="button" class="btn btn-secondary" (click)="cancelEdit()"
@@ -154,7 +156,11 @@
             </div>
         </div>
         <div class="card-body">
-            <p *ngIf="receipts.length === 0 && !isLoadingPage">Nenhum recibo emitido ainda.</p>
+            <div class="page-error" *ngIf="pageError" role="alert">
+                <span>{{ pageError }}</span>
+                <button type="button" class="btn btn-secondary btn-sm" (click)="loadReceipts()">Tentar novamente</button>
+            </div>
+            <p *ngIf="receipts.length === 0 && !isLoadingPage && !pageError">Nenhum recibo emitido ainda.</p>
             <div class="share-feedback" role="status" *ngIf="shareFeedback">
                 <span>{{ shareFeedback }}</span>
                 <button type="button" class="close-btn" (click)="clearFeedback()" aria-label="Fechar">✕</button>
@@ -190,7 +196,7 @@
                                 {{ sharingReceiptId === receipt.id ? 'Preparando...' : 'Compartilhar' }}
                             </button>
                             <button type="button" class="btn btn-info" (click)="editReceipt(receipt)">Editar</button>
-                            <button type="button" class="btn btn-danger" (click)="deleteReceipt(receipt.id!)">Excluir</button>
+                            <button type="button" class="btn btn-danger" (click)="deleteReceipt(receipt)">Excluir</button>
                         </div>
                     </article>
                 </div>
@@ -237,7 +243,7 @@
                                         {{ sharingReceiptId === receipt.id ? 'Preparando...' : 'Compartilhar' }}
                                     </button>
                                     <button type="button" class="btn btn-info btn-sm me-2" (click)="editReceipt(receipt)">Editar</button>
-                                    <button type="button" class="btn btn-danger btn-sm" (click)="deleteReceipt(receipt.id!)">Excluir</button>
+                                    <button type="button" class="btn btn-danger btn-sm" (click)="deleteReceipt(receipt)">Excluir</button>
                                 </td>
                             </tr>
                         </tbody>
@@ -245,5 +251,25 @@
                 </div>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Painel de confirmação de cancelamento -->
+<div class="delete-overlay" *ngIf="pendingDeleteReceipt" (click)="cancelPendingDelete()"></div>
+<div class="delete-panel" [class.open]="pendingDeleteReceipt !== null" role="dialog" aria-modal="true"
+    aria-labelledby="delete-panel-title">
+    <div class="delete-panel-handle"></div>
+    <h4 id="delete-panel-title">Cancelar recibo
+        #{{ ((pendingDeleteReceipt?.number ?? pendingDeleteReceipt?.id ?? 0).toString()).padStart(6, '0') }}?
+    </h4>
+    <p class="delete-panel-hint">Esta ação não pode ser desfeita. O recibo ficará marcado como cancelado.</p>
+    <div class="form-group">
+        <label for="deleteReason">Motivo <span class="optional-hint">(opcional)</span></label>
+        <input type="text" id="deleteReason" [(ngModel)]="pendingDeleteReason" name="deleteReason"
+            class="form-control" placeholder="Ex: emitido por engano" maxlength="500" autocomplete="off">
+    </div>
+    <div class="delete-panel-actions">
+        <button type="button" class="btn btn-danger" (click)="confirmDelete()">Confirmar cancelamento</button>
+        <button type="button" class="btn btn-secondary" (click)="cancelPendingDelete()">Voltar</button>
     </div>
 </div>
